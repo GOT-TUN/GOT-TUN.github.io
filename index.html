@@ -403,6 +403,31 @@ function wallHit(px, py, dx, dy) {
   if (dy > 1e-9) { var s4 = (f.b - py) / dy, x4 = px + dx * s4; consider(s4, 0, -1, x4 >= f.l - 0.01 && x4 <= f.r + 0.01); }
   return best;
 }
+function isGapStop(hx, hy, hb) {
+  // 敵・ブロック同士の隙間がボールの2/3以下で、その隙間の正面に当たったら「はまって終了」
+  var limit = state.chara.rad * 4 / 3;
+  for (var i = 0; i < state.blocks.length; i++) {
+    var o = state.blocks[i];
+    if (o === hb) continue;
+    var yOverlap = Math.min(hb.y + hb.h, o.y + o.h) - Math.max(hb.y, o.y);
+    if (yOverlap > 0) {
+      var gx, g0, g1;
+      if (o.x >= hb.x + hb.w) { gx = o.x - (hb.x + hb.w); g0 = hb.x + hb.w; g1 = o.x; }
+      else if (hb.x >= o.x + o.w) { gx = hb.x - (o.x + o.w); g0 = o.x + o.w; g1 = hb.x; }
+      else gx = -1;
+      if (gx >= 0 && gx <= limit && hx > g0 && hx < g1) return true;
+    }
+    var xOverlap = Math.min(hb.x + hb.w, o.x + o.w) - Math.max(hb.x, o.x);
+    if (xOverlap > 0) {
+      var gy, h0, h1;
+      if (o.y >= hb.y + hb.h) { gy = o.y - (hb.y + hb.h); h0 = hb.y + hb.h; h1 = o.y; }
+      else if (hb.y >= o.y + o.h) { gy = hb.y - (o.y + o.h); h0 = o.y + o.h; h1 = hb.y; }
+      else gy = -1;
+      if (gy >= 0 && gy <= limit && hy > h0 && hy < h1) return true;
+    }
+  }
+  return false;
+}
 function computeTrajectory() {
   var c = state.chara;
   var px = c.x, py = c.y;
@@ -429,6 +454,7 @@ function computeTrajectory() {
     pts.push({ x: hx, y: hy });
     remaining -= best.s;
     if (best.block && state.blockMode === 'stop') break;
+    if (best.block && isGapStop(hx, hy, best.block)) break; // 通れない隙間にはまって終了
     if (refl >= state.refl) break;
     refl++;
     markers.push({ x: hx, y: hy, n: refl });
