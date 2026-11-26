@@ -131,7 +131,7 @@
     </div>
     <div class="row">
       <label for="reflRange">反射回数</label>
-      <input type="range" id="reflRange" min="0" max="20" step="1" value="10">
+      <input type="range" id="reflRange" min="0" max="40" step="1" value="10">
       <output id="reflVal">10回</output>
     </div>
     <div class="row">
@@ -176,6 +176,7 @@
     <div class="btns">
       <button type="button" id="addRect">四角ブロック追加</button>
       <button type="button" id="addCircle">丸ブロック追加</button>
+      <button type="button" id="addEnemy">敵を追加</button>
       <button type="button" id="dupBlock">複製</button>
       <button type="button" id="delBlock">削除</button>
     </div>
@@ -184,7 +185,7 @@
       <button type="button" id="lockAllBlocks">すべて固定</button>
       <button type="button" id="unlockAllBlocks">すべての固定を解除</button>
     </div>
-    <p class="hint">ブロックをドラッグ：移動／右下の角：サイズ変更。固定中は水色の枠＋「🔒固定中」表示になり、移動・サイズ変更はできません（軌道の反射には効きます）。</p>
+    <p class="hint">ブロックをドラッグ：移動／右下の角：サイズ変更。固定中は水色の枠＋「🔒固定中」表示になり、移動・サイズ変更はできません（軌道の反射には効きます）。「敵」は見た目が丸でも、当たり判定は赤い破線の四角として跳ね返ります（本家と同じ仕様）。</p>
   </div>
 
   <div class="card">
@@ -434,9 +435,10 @@ function drawBlocks() {
   state.blocks.forEach(function (b, i) {
     ctx.save();
     ctx.globalAlpha = 0.35;
-    if (b.type === 'circle') {
+    if (b.type === 'circle' || b.type === 'enemy') {
       var g = ctx.createRadialGradient(b.x + b.w * 0.35, b.y + b.h * 0.35, 6, b.x + b.w / 2, b.y + b.h / 2, b.w / 2);
-      g.addColorStop(0, '#5a6a86'); g.addColorStop(1, '#2c3648');
+      if (b.type === 'enemy') { g.addColorStop(0, '#c77dff'); g.addColorStop(1, '#7b2cbf'); }
+      else { g.addColorStop(0, '#5a6a86'); g.addColorStop(1, '#2c3648'); }
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.fill();
     } else {
@@ -446,23 +448,28 @@ function drawBlocks() {
       ctx.fillRect(b.x, b.y, b.w, b.h);
     }
     ctx.globalAlpha = 1;
+    if (b.type === 'enemy') {
+      ctx.strokeStyle = 'rgba(255,110,110,0.95)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
+      ctx.setLineDash([]);
+    }
     if (b.locked) {
       ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 3.5;
-      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
+      if (b.type === 'circle' || b.type === 'enemy') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
       else ctx.strokeRect(b.x, b.y, b.w, b.h);
       ctx.fillStyle = 'rgba(127,212,255,0.18)';
-      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.fill(); }
+      if (b.type === 'circle' || b.type === 'enemy') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.fill(); }
       else ctx.fillRect(b.x, b.y, b.w, b.h);
       ctx.font = 'bold 17px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = '#bfe9ff';
       ctx.fillText('🔒固定中', b.x + b.w / 2, b.y + b.h / 2 + 6);
     } else {
       ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 2;
-      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
+      if (b.type === 'circle' || b.type === 'enemy') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
       else ctx.strokeRect(b.x, b.y, b.w, b.h);
       ctx.font = 'bold 17px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText('ブロック', b.x + b.w / 2, b.y + b.h / 2 + 6);
+      ctx.fillText(b.type === 'enemy' ? '敵' : 'ブロック', b.x + b.w / 2, b.y + b.h / 2 + 6);
     }
     if (i === state.sel) {
       ctx.strokeStyle = '#ffd83d'; ctx.lineWidth = 3; ctx.setLineDash([8, 5]);
@@ -645,7 +652,7 @@ canvas.addEventListener('pointermove', function (ev) {
     if (rb && !rb.locked) {
       var nw = Math.max(30, Math.min(p.x - rb.x, W - rb.x));
       var nh = Math.max(30, Math.min(p.y - rb.y, H - rb.y));
-      if (rb.type === 'circle') { var d = Math.max(nw, nh); rb.w = d; rb.h = d; }
+      if (rb.type === 'circle' || rb.type === 'enemy') { var d = Math.max(nw, nh); rb.w = d; rb.h = d; }
       else { rb.w = nw; rb.h = nh; }
       draw();
     }
@@ -745,8 +752,8 @@ $('presetFull').addEventListener('click', function () { applyFieldPreset('full')
 function addBlock(type) {
   var f = state.field;
   var cx = (f.l + f.r) / 2, cy = (f.t + f.b) / 2;
-  var b = type === 'circle'
-    ? { type: 'circle', x: cx - 55, y: cy - 55, w: 110, h: 110, locked: false }
+  var b = (type === 'circle' || type === 'enemy')
+    ? { type: type, x: cx - 55, y: cy - 55, w: 110, h: 110, locked: false }
     : { type: 'rect', x: cx - 55, y: cy - 75, w: 110, h: 150, locked: false };
   state.blocks.push(b);
   state.sel = state.blocks.length - 1;
@@ -754,6 +761,7 @@ function addBlock(type) {
 }
 $('addRect').addEventListener('click', function () { addBlock('rect'); });
 $('addCircle').addEventListener('click', function () { addBlock('circle'); });
+$('addEnemy').addEventListener('click', function () { addBlock('enemy'); });
 $('dupBlock').addEventListener('click', function () {
   var b = state.blocks[state.sel]; if (!b) return;
   var nb = { type: b.type, x: Math.min(b.x + 26, W - b.w), y: Math.min(b.y + 26, H - b.h), w: b.w, h: b.h, locked: false };
