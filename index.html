@@ -193,6 +193,10 @@
     <div class="btns">
       <button type="button" class="primary" id="savePng">軌道入り画面をPNGで保存</button>
     </div>
+    <div class="btns">
+      <button type="button" id="resetSettings">保存した設定をリセット</button>
+    </div>
+    <p class="hint">フィールド・ブロック・敵・自機・軌道の設定は自動でこの端末に保存され、次に開いたとき復元されます。</p>
   </div>
 </div>
 <script>
@@ -217,6 +221,56 @@ var state = {
   sel: -1
 };
 var MIN_FIELD = 120;
+
+/* ===== 設定の自動保存 ===== */
+var SETTINGS_KEY = 'mst_settings_v1';
+var settingsLoaded = false;
+function saveSettings() {
+  if (!settingsLoaded) return;
+  try {
+    var data = {
+      field: { t: state.field.t / H, b: state.field.b / H, l: state.field.l / W, r: state.field.r / W },
+      fieldLocked: state.fieldLocked,
+      blocks: state.blocks.map(function (b) { return { type: b.type, x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H, locked: b.locked }; }),
+      chara: { x: state.chara.x / W, y: state.chara.y / H, rad: state.chara.rad / W, opacity: state.chara.opacity, locked: state.chara.locked },
+      angle: state.angle, refl: state.refl, trajLen: state.trajLen,
+      color: state.color, blockMode: state.blockMode
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+function loadSettings() {
+  try {
+    var raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    if (!d || !d.field) return false;
+    state.field = {
+      t: Math.round(d.field.t * H), b: Math.round(d.field.b * H),
+      l: Math.round(d.field.l * W), r: Math.round(d.field.r * W)
+    };
+    state.fieldLocked = !!d.fieldLocked;
+    state.blocks = (d.blocks || []).map(function (b) {
+      return { type: b.type, x: b.x * W, y: b.y * H, w: Math.max(30, b.w * W), h: Math.max(30, b.h * H), locked: !!b.locked };
+    });
+    if (d.chara) {
+      state.chara.x = d.chara.x * W; state.chara.y = d.chara.y * H;
+      state.chara.rad = Math.max(30, Math.min(70, d.chara.rad * W));
+      state.chara.opacity = d.chara.opacity; state.chara.locked = !!d.chara.locked;
+    }
+    if (typeof d.angle === 'number') state.angle = d.angle;
+    if (typeof d.refl === 'number') state.refl = Math.max(0, Math.min(40, d.refl));
+    if (typeof d.trajLen === 'number') state.trajLen = d.trajLen;
+    if (d.color) state.color = d.color;
+    if (d.blockMode) state.blockMode = d.blockMode;
+    $('reflRange').value = state.refl; $('reflVal').textContent = state.refl + '回';
+    $('lenRange').value = state.trajLen; $('lenVal').textContent = state.trajLen;
+    $('colorInput').value = state.color;
+    $('blockMode').value = state.blockMode;
+    clampCharaToField();
+    return true;
+  } catch (e) { return false; }
+}
 
 /* サンプルステージのダミー敵 */
 var DUMMY_ENEMIES = [
@@ -565,6 +619,7 @@ function draw() {
     ctx.restore();
   }
   drawChara();
+  saveSettings();
 }
 
 /* ===== ポインタ操作 ===== */
@@ -789,6 +844,10 @@ $('unlockAllBlocks').addEventListener('click', function () {
   syncBlockButtons(); draw();
 });
 
+$('resetSettings').addEventListener('click', function () {
+  try { localStorage.removeItem(SETTINGS_KEY); } catch (e) {}
+  location.reload();
+});
 $('savePng').addEventListener('click', function () {
   canvas.toBlob(function (blob) {
     if (!blob) return;
@@ -848,9 +907,13 @@ $('clearImgBtn').addEventListener('click', function () {
 });
 
 /* ===== 初期化 ===== */
-applyFieldPreset('std');
-state.chara.x = (state.field.l + state.field.r) / 2;
-state.chara.y = state.field.b - state.chara.rad - 12;
+var hadSettings = loadSettings();
+settingsLoaded = true;
+if (!hadSettings) {
+  applyFieldPreset('std');
+  state.chara.x = (state.field.l + state.field.r) / 2;
+  state.chara.y = state.field.b - state.chara.rad - 12;
+}
 syncFieldUI();
 syncCharaUI();
 syncAngleUI();
