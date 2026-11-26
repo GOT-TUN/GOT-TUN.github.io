@@ -148,6 +148,7 @@
       <select id="blockMode">
         <option value="reflect" selected>ブロックで反射する</option>
         <option value="stop">ブロックで止まる</option>
+        <option value="through">ブロックを貫通する</option>
       </select>
     </div>
     <p class="hint">フィールド内を触って、そのまま引っ張ると照準（触った場所が起点になる相対操作なので、長く引っ張るほど細かく角度を決められます）。反射点には番号が付きます。</p>
@@ -179,6 +180,9 @@
       <button type="button" id="addEnemy">敵を追加</button>
       <button type="button" id="dupBlock">複製</button>
       <button type="button" id="delBlock">削除</button>
+    </div>
+    <div class="btns">
+      <button type="button" id="throughBtn">貫通：OFF</button>
     </div>
     <div class="btns">
       <button type="button" id="lockBlockBtn">選択中のブロックを固定する</button>
@@ -393,7 +397,7 @@ function computeTrajectory() {
   var guard = 0;
   while (remaining > 0 && guard++ < 200) {
     var best = wallHit(px, py, dx, dy);
-    for (var i = 0; i < state.blocks.length; i++) {
+    for (var i = 0; state.blockMode !== 'through' && i < state.blocks.length; i++) {
       var b = state.blocks[i], hit = null;
       if (b.type === 'circle') hit = rayCircle(px, py, dx, dy, b.x + b.w / 2, b.y + b.h / 2, b.w / 2);
       else hit = rayRect(px, py, dx, dy, b);
@@ -758,6 +762,13 @@ function syncBlockButtons() {
   lb.disabled = !b;
   lb.textContent = b && b.locked ? '選択中のブロックの固定を解除する' : '選択中のブロックを固定する';
   lb.classList.toggle('lock-on', !!(b && b.locked));
+  syncThroughBtn();
+}
+function syncThroughBtn() {
+  var tb = $('throughBtn');
+  var on = state.blockMode === 'through';
+  tb.textContent = on ? '貫通：ON' : '貫通：OFF';
+  tb.classList.toggle('lock-on', on);
 }
 
 /* ===== イベント配線 ===== */
@@ -795,7 +806,12 @@ $('lenRange').addEventListener('input', function () {
   draw();
 });
 $('colorInput').addEventListener('input', function () { state.color = this.value; draw(); });
-$('blockMode').addEventListener('change', function () { state.blockMode = this.value; draw(); });
+$('blockMode').addEventListener('change', function () { state.blockMode = this.value; syncThroughBtn(); draw(); });
+$('throughBtn').addEventListener('click', function () {
+  state.blockMode = state.blockMode === 'through' ? 'reflect' : 'through';
+  $('blockMode').value = state.blockMode;
+  syncThroughBtn(); draw();
+});
 
 ['t', 'b', 'l', 'r'].forEach(function (e) {
   $('f' + e.toUpperCase()).addEventListener('input', function () { setField(e, Number(this.value)); });
