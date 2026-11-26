@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="モンスト軌道">
+<meta name="theme-color" content="#1a2233">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23ffb300'/%3E%3Cpolyline points='38,142 90,48 142,142' fill='none' stroke='white' stroke-width='11' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='90' cy='142' r='13' fill='white'/%3E%3C/svg%3E">
+<title>モンスト反射軌道シミュレーター</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    background: #101623; color: #eef2f8; -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 10px 10px 28px; }
+  h1 { font-size: 20px; margin: 6px 2px 2px; }
+  .sub { color: #aeb9cc; font-size: 13px; margin: 0 2px 10px; }
+  .stage-box { background: #05080f; border-radius: 14px; padding: 6px; }
+  canvas {
+    display: block; width: 100%; height: auto; border-radius: 10px;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    background: #0a0f1a;
+  }
+  .card {
+    background: #1a2233; border: 1px solid #2b3852; border-radius: 12px;
+    padding: 12px 14px; margin-top: 12px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 10px; color: #ffd83d; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+  .row label { font-size: 13px; min-width: 108px; color: #cfd8ea; }
+  .row output { font-size: 13px; min-width: 58px; text-align: right; color: #fff; }
+  input[type="range"] { flex: 1; min-width: 120px; accent-color: #ffb300; height: 28px; }
+  input[type="range"]:disabled { opacity: .35; }
+  input[type="color"] { width: 52px; height: 34px; border: none; background: none; padding: 0; }
+  select {
+    font-size: 14px; padding: 7px 8px; border-radius: 8px; border: 1px solid #3a4a6b;
+    background: #232f47; color: #fff;
+  }
+  button {
+    font-size: 14px; padding: 9px 13px; border-radius: 9px; border: 1px solid #3a4a6b;
+    background: #232f47; color: #fff; cursor: pointer;
+  }
+  button:active { background: #2e3d5c; }
+  button.primary { background: #b97e0a; border-color: #d99a17; font-weight: 700; }
+  button.lock-on { background: #0f4d73; border-color: #39c2ff; color: #bfe9ff; }
+  button:disabled { opacity: .4; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .hint { font-size: 12px; color: #93a3bd; margin: 6px 0 0; line-height: 1.6; }
+  .file-btn { position: relative; overflow: hidden; display: inline-block; }
+  .file-btn input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+  }
+  .edge-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
+  @media (min-width: 560px) { .edge-grid { grid-template-columns: 1fr 1fr; column-gap: 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>モンスト反射軌道シミュレーター</h1>
+  <p class="sub">スクショを読み込んで、引っ張り角度と壁・ブロック反射の軌道を先読みできます。</p>
+
+  <div class="stage-box">
+    <canvas id="stage" width="720" height="960"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>画像</h2>
+    <div class="btns">
+      <span class="file-btn"><button class="primary" type="button">スクショを読み込む</button><input type="file" id="fileInput" accept="image/*"></span>
+      <button type="button" id="clearImgBtn">画像を外す（サンプルに戻す）</button>
+    </div>
+    <p class="hint">読み込んだ画像は全体が切れずに幅いっぱいに表示されます。この端末の外に画像は送信されません。</p>
+  </div>
+
+  <div class="card">
+    <h2>自機</h2>
+    <div class="row">
+      <label for="charaSize">自機の大きさ</label>
+      <input type="range" id="charaSize" min="60" max="140" step="1" value="88">
+      <output id="charaSizeVal">88px</output>
+    </div>
+    <div class="row">
+      <label for="charaOpacity">自機の不透明度</label>
+      <input type="range" id="charaOpacity" min="15" max="100" step="1" value="55">
+      <output id="charaOpacityVal">55%</output>
+    </div>
+    <div class="btns">
+      <button type="button" id="charaLockBtn">自機の位置を固定する</button>
+      <button type="button" id="charaResetBtn">中央下へ</button>
+    </div>
+    <p class="hint">自機（オレンジの丸）をドラッグ：移動／固定中はドラッグしても動かず、照準だけできます。</p>
+  </div>
+
+  <div class="card">
+    <h2>照準・軌道</h2>
+    <div class="row">
+      <label for="angleRange">角度</label>
+      <input type="range" id="angleRange" min="-180" max="180" step="1" value="-90">
+      <output id="angleVal">-90°</output>
+    </div>
+    <div class="row">
+      <label for="reflRange">反射回数</label>
+      <input type="range" id="reflRange" min="0" max="20" step="1" value="10">
+      <output id="reflVal">10回</output>
+    </div>
+    <div class="row">
+      <label for="lenRange">軌道の長さ</label>
+      <input type="range" id="lenRange" min="500" max="8000" step="100" value="5000">
+      <output id="lenVal">5000</output>
+    </div>
+    <div class="row">
+      <label for="colorInput">軌道の色</label>
+      <input type="color" id="colorInput" value="#ffd83d">
+    </div>
+    <div class="row">
+      <label for="blockMode">ブロックの扱い</label>
+      <select id="blockMode">
+        <option value="reflect" selected>ブロックで反射する</option>
+        <option value="stop">ブロックで止まる</option>
+      </select>
+    </div>
+    <p class="hint">画面をドラッグ：引っ張って照準（モンスト式）。反射点には番号が付きます。</p>
+  </div>
+
+  <div class="card">
+    <h2>反射フィールド</h2>
+    <div class="edge-grid">
+      <div class="row"><label for="fT">上端</label><input type="range" id="fT" min="0" max="960" step="1" value="0"><output id="fTVal">0</output></div>
+      <div class="row"><label for="fB">下端</label><input type="range" id="fB" min="0" max="960" step="1" value="778"><output id="fBVal">778</output></div>
+      <div class="row"><label for="fL">左端</label><input type="range" id="fL" min="0" max="720" step="1" value="50"><output id="fLVal">50</output></div>
+      <div class="row"><label for="fR">右端</label><input type="range" id="fR" min="0" max="720" step="1" value="670"><output id="fRVal">670</output></div>
+    </div>
+    <div class="btns">
+      <button type="button" id="lockT">上端を固定する</button>
+      <button type="button" id="lockB">下端を固定する</button>
+      <button type="button" id="lockL">左端を固定する</button>
+      <button type="button" id="lockR">右端を固定する</button>
+    </div>
+    <div class="btns">
+      <button type="button" id="presetStd">プレイエリア標準に戻す</button>
+      <button type="button" id="presetFull">画面全体にする</button>
+    </div>
+    <p class="hint">フィールドの各辺は、画面上の線をドラッグしても動かせます。固定した辺は青くなり、ドラッグ・スライダー・プリセットで動きません。枠の外は暗く表示されます。</p>
+  </div>
+
+  <div class="card">
+    <h2>ブロック（障害物）</h2>
+    <div class="btns">
+      <button type="button" id="addRect">四角ブロック追加</button>
+      <button type="button" id="addCircle">丸ブロック追加</button>
+      <button type="button" id="dupBlock">複製</button>
+      <button type="button" id="delBlock">削除</button>
+    </div>
+    <div class="btns">
+      <button type="button" id="lockBlockBtn">選択中のブロックを固定する</button>
+      <button type="button" id="lockAllBlocks">すべて固定</button>
+      <button type="button" id="unlockAllBlocks">すべての固定を解除</button>
+    </div>
+    <p class="hint">ブロックをドラッグ：移動／右下の角：サイズ変更。固定中は水色の枠＋「🔒固定中」表示になり、移動・サイズ変更はできません（軌道の反射には効きます）。</p>
+  </div>
+
+  <div class="card">
+    <h2>保存</h2>
+    <div class="btns">
+      <button type="button" class="primary" id="savePng">軌道入り画面をPNGで保存</button>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+/* ===== 基本状態 ===== */
+var canvas = document.getElementById('stage');
+var ctx = canvas.getContext('2d');
+var DEFAULT_W = 720, DEFAULT_H = 960;
+var W = DEFAULT_W, H = DEFAULT_H;
+
+var state = {
+  img: null,          // 読み込んだ画像 (Image) / null = サンプル
+  chara: { x: 360, y: 700, rad: 44, opacity: 0.55, locked: false },
+  angle: -Math.PI / 2,
+  refl: 10,
+  trajLen: 5000,
+  color: '#ffd83d',
+  blockMode: 'reflect',
+  field: { t: 0, b: 778, l: 50, r: 670 },
+  fieldLocks: { t: false, b: false, l: false, r: false },
+  blocks: [],
+  sel: -1
+};
+var MIN_FIELD = 120;
+
+/* サンプルステージのダミー敵 */
+var DUMMY_ENEMIES = [
+  { x: 180, y: 150, r: 46, label: '153,000' },
+  { x: 590, y: 160, r: 48, label: '153,340' },
+  { x: 320, y: 350, r: 34, label: '' },
+  { x: 180, y: 560, r: 44, label: '153,000' },
+  { x: 590, y: 620, r: 48, label: '153,340' }
+];
+
+/* ===== 要素参照 ===== */
+function $(id) { return document.getElementById(id); }
+var fileInput = $('fileInput');
+
+/* ===== フィールド ===== */
+function fieldPct() {
+  // 画像種別ごとの標準フィールド（比率）
+  if (state.img) return { t: 0.195, b: 0.72, l: 0.04, r: 0.96 };
+  return { t: 0, b: 0.81, l: 0.07, r: 0.93 };
+}
+function clampFieldVal(edge, v) {
+  var f = state.field;
+  if (edge === 'l') return Math.max(0, Math.min(v, f.r - MIN_FIELD));
+  if (edge === 'r') return Math.max(f.l + MIN_FIELD, Math.min(v, W));
+  if (edge === 't') return Math.max(0, Math.min(v, f.b - MIN_FIELD));
+  return Math.max(f.t + MIN_FIELD, Math.min(v, H)); // b
+}
+function setField(edge, v) {
+  if (state.fieldLocks[edge]) return;
+  state.field[edge] = Math.round(clampFieldVal(edge, v));
+  clampCharaToField();
+  syncFieldUI();
+  draw();
+}
+function applyFieldPreset(kind) {
+  var f = state.field, p;
+  if (kind === 'full') { p = { t: 0, b: 1, l: 0, r: 1 }; }
+  else { p = fieldPct(); }
+  var target = { t: Math.round(p.t * H), b: Math.round(p.b * H), l: Math.round(p.l * W), r: Math.round(p.r * W) };
+  // 固定されていない辺だけ適用（順序で潰れないよう一時退避してからクランプ）
+  var nt = state.fieldLocks.t ? f.t : target.t;
+  var nb = state.fieldLocks.b ? f.b : target.b;
+  var nl = state.fieldLocks.l ? f.l : target.l;
+  var nr = state.fieldLocks.r ? f.r : target.r;
+  if (nr - nl < MIN_FIELD) { nr = nl + MIN_FIELD; }
+  if (nb - nt < MIN_FIELD) { nb = nt + MIN_FIELD; }
+  state.field = { t: nt, b: nb, l: nl, r: nr };
+  clampCharaToField();
+  syncFieldUI();
+  draw();
+}
+function clampCharaToField() {
+  var c = state.chara, f = state.field;
+  c.x = Math.max(f.l + c.rad, Math.min(c.x, f.r - c.rad));
+  c.y = Math.max(f.t + c.rad, Math.min(c.y, f.b - c.rad));
+}
+function syncFieldUI() {
+  var f = state.field;
+  $('fT').max = H; $('fB').max = H; $('fL').max = W; $('fR').max = W;
+  $('fT').value = f.t; $('fB').value = f.b; $('fL').value = f.l; $('fR').value = f.r;
+  $('fTVal').textContent = f.t; $('fBVal').textContent = f.b;
+  $('fLVal').textContent = f.l; $('fRVal').textContent = f.r;
+  $('fT').disabled = state.fieldLocks.t; $('fB').disabled = state.fieldLocks.b;
+  $('fL').disabled = state.fieldLocks.l; $('fR').disabled = state.fieldLocks.r;
+  var names = { t: '上端', b: '下端', l: '左端', r: '右端' };
+  ['t', 'b', 'l', 'r'].forEach(function (e) {
+    var btn = $('lock' + e.toUpperCase());
+    var on = state.fieldLocks[e];
+    btn.textContent = names[e] + (on ? 'の固定を解除する' : 'を固定する');
+    btn.classList.toggle('lock-on', on);
+  });
+}
+
+/* ===== 軌道計算 ===== */
+function rayRect(px, py, dx, dy, b) {
+  var tmin = -Infinity, tmax = Infinity, axis = null;
+  if (Math.abs(dx) < 1e-9) { if (px < b.x || px > b.x + b.w) return null; }
+  else {
+    var t1 = (b.x - px) / dx, t2 = (b.x + b.w - px) / dx, tmp;
+    if (t1 > t2) { tmp = t1; t1 = t2; t2 = tmp; }
+    if (t1 > tmin) { tmin = t1; axis = 'x'; }
+    tmax = Math.min(tmax, t2);
+  }
+  if (Math.abs(dy) < 1e-9) { if (py < b.y || py > b.y + b.h) return null; }
+  else {
+    var t3 = (b.y - py) / dy, t4 = (b.y + b.h - py) / dy, tmp2;
+    if (t3 > t4) { tmp2 = t3; t3 = t4; t4 = tmp2; }
+    if (t3 > tmin) { tmin = t3; axis = 'y'; }
+    tmax = Math.min(tmax, t4);
+  }
+  if (tmax < Math.max(tmin, 0) || tmin < 0.001) return null;
+  var nx = 0, ny = 0;
+  if (axis === 'x') nx = dx > 0 ? -1 : 1; else ny = dy > 0 ? -1 : 1;
+  return { s: tmin, nx: nx, ny: ny };
+}
+function rayCircle(px, py, dx, dy, cx, cy, cr) {
+  var ox = px - cx, oy = py - cy;
+  var bq = ox * dx + oy * dy;
+  var cq = ox * ox + oy * oy - cr * cr;
+  var disc = bq * bq - cq;
+  if (disc < 0) return null;
+  var sq = Math.sqrt(disc);
+  var s = -bq - sq;
+  if (s < 0.001) { s = -bq + sq; if (s < 0.001) return null; }
+  var hx = px + dx * s, hy = py + dy * s;
+  return { s: s, nx: (hx - cx) / cr, ny: (hy - cy) / cr };
+}
+function wallHit(px, py, dx, dy) {
+  var f = state.field, best = null;
+  function consider(s, nx, ny, ok) {
+    if (ok && s > 0.001 && (!best || s < best.s)) best = { s: s, nx: nx, ny: ny, block: null };
+  }
+  if (dx < -1e-9) { var s1 = (f.l - px) / dx, y1 = py + dy * s1; consider(s1, 1, 0, y1 >= f.t - 0.01 && y1 <= f.b + 0.01); }
+  if (dx > 1e-9) { var s2 = (f.r - px) / dx, y2 = py + dy * s2; consider(s2, -1, 0, y2 >= f.t - 0.01 && y2 <= f.b + 0.01); }
+  if (dy < -1e-9) { var s3 = (f.t - py) / dy, x3 = px + dx * s3; consider(s3, 0, 1, x3 >= f.l - 0.01 && x3 <= f.r + 0.01); }
+  if (dy > 1e-9) { var s4 = (f.b - py) / dy, x4 = px + dx * s4; consider(s4, 0, -1, x4 >= f.l - 0.01 && x4 <= f.r + 0.01); }
+  return best;
+}
+function computeTrajectory() {
+  var c = state.chara;
+  var px = c.x, py = c.y;
+  var dx = Math.cos(state.angle), dy = Math.sin(state.angle);
+  var pts = [{ x: px, y: py }];
+  var markers = [];
+  var remaining = state.trajLen;
+  var refl = 0;
+  var guard = 0;
+  while (remaining > 0 && guard++ < 200) {
+    var best = wallHit(px, py, dx, dy);
+    for (var i = 0; i < state.blocks.length; i++) {
+      var b = state.blocks[i], hit = null;
+      if (b.type === 'circle') hit = rayCircle(px, py, dx, dy, b.x + b.w / 2, b.y + b.h / 2, b.w / 2);
+      else hit = rayRect(px, py, dx, dy, b);
+      if (hit && (!best || hit.s < best.s)) { hit.block = b; best = hit; }
+    }
+    if (!best || best.s > remaining) {
+      pts.push({ x: px + dx * remaining, y: py + dy * remaining });
+      break;
+    }
+    var hx = px + dx * best.s, hy = py + dy * best.s;
+    pts.push({ x: hx, y: hy });
+    remaining -= best.s;
+    if (best.block && state.blockMode === 'stop') break;
+    if (refl >= state.refl) break;
+    refl++;
+    markers.push({ x: hx, y: hy, n: refl });
+    var dot = dx * best.nx + dy * best.ny;
+    dx -= 2 * dot * best.nx; dy -= 2 * dot * best.ny;
+    px = hx; py = hy;
+  }
+  return { pts: pts, markers: markers };
+}
+
+/* ===== 描画 ===== */
+function drawSampleStage() {
+  var g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#8a6d3b'); g.addColorStop(1, '#6d5527');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // ダイヤ柄
+  ctx.strokeStyle = 'rgba(255,235,180,0.20)'; ctx.lineWidth = 2;
+  var step = 90, x, y;
+  for (x = -H; x < W + H; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + H, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + H, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  // 左右レール
+  ctx.fillStyle = '#274b63';
+  ctx.fillRect(0, 0, state.field.l, H); ctx.fillRect(state.field.r, 0, W - state.field.r, H);
+  // ダミー敵
+  DUMMY_ENEMIES.forEach(function (e) {
+    var eg = ctx.createRadialGradient(e.x - e.r * 0.3, e.y - e.r * 0.3, e.r * 0.2, e.x, e.y, e.r);
+    eg.addColorStop(0, '#c77dff'); eg.addColorStop(1, '#7b2cbf');
+    ctx.fillStyle = eg;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(e.x - e.r * 0.32, e.y - e.r * 0.1, e.r * 0.11, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(e.x + e.r * 0.32, e.y - e.r * 0.1, e.r * 0.11, 0, Math.PI * 2); ctx.fill();
+    if (e.label) {
+      ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ff5d8f';
+      ctx.fillText(e.label, e.x, e.y - e.r - 12);
+    }
+  });
+}
+function drawFieldOverlay() {
+  var f = state.field;
+  ctx.fillStyle = 'rgba(3,6,12,0.38)';
+  ctx.fillRect(0, 0, W, f.t);
+  ctx.fillRect(0, f.b, W, H - f.b);
+  ctx.fillRect(0, f.t, f.l, f.b - f.t);
+  ctx.fillRect(f.r, f.t, W - f.r, f.b - f.t);
+  // 枠と辺
+  var edges = [
+    { k: 't', x1: f.l, y1: f.t, x2: f.r, y2: f.t, gx: (f.l + f.r) / 2, gy: f.t, name: '上端' },
+    { k: 'b', x1: f.l, y1: f.b, x2: f.r, y2: f.b, gx: (f.l + f.r) / 2, gy: f.b, name: '下端' },
+    { k: 'l', x1: f.l, y1: f.t, x2: f.l, y2: f.b, gx: f.l, gy: (f.t + f.b) / 2, name: '左端' },
+    { k: 'r', x1: f.r, y1: f.t, x2: f.r, y2: f.b, gx: f.r, gy: (f.t + f.b) / 2, name: '右端' }
+  ];
+  edges.forEach(function (e) {
+    var locked = state.fieldLocks[e.k];
+    ctx.strokeStyle = locked ? '#39c2ff' : 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = locked ? 4 : 2.5;
+    ctx.beginPath(); ctx.moveTo(e.x1, e.y1); ctx.lineTo(e.x2, e.y2); ctx.stroke();
+    // グリップ
+    ctx.fillStyle = locked ? '#39c2ff' : '#ffffff';
+    ctx.beginPath(); ctx.arc(e.gx, e.gy, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#20304d'; ctx.lineWidth = 2; ctx.stroke();
+    if (locked) {
+      var label = '🔒 ' + e.name + '固定中';
+      ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'center';
+      var tw = ctx.measureText(label).width + 18;
+      var lx = Math.max(tw / 2 + 4, Math.min(e.gx, W - tw / 2 - 4));
+      var ly = (e.k === 't') ? e.gy + 30 : (e.k === 'b') ? e.gy - 30 : e.gy - 26;
+      ctx.fillStyle = 'rgba(10,50,80,0.88)';
+      ctx.beginPath(); ctx.rect(lx - tw / 2, ly - 15, tw, 30); ctx.fill();
+      ctx.fillStyle = '#bfe9ff';
+      ctx.fillText(label, lx, ly + 7);
+    }
+  });
+}
+function drawBlocks() {
+  state.blocks.forEach(function (b, i) {
+    ctx.save();
+    if (b.type === 'circle') {
+      var g = ctx.createRadialGradient(b.x + b.w * 0.35, b.y + b.h * 0.35, 6, b.x + b.w / 2, b.y + b.h / 2, b.w / 2);
+      g.addColorStop(0, '#5a6a86'); g.addColorStop(1, '#2c3648');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.fill();
+    } else {
+      var g2 = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+      g2.addColorStop(0, '#4c5a72'); g2.addColorStop(1, '#28324a');
+      ctx.fillStyle = g2;
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+    }
+    if (b.locked) {
+      ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 3.5;
+      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
+      else ctx.strokeRect(b.x, b.y, b.w, b.h);
+      ctx.fillStyle = 'rgba(127,212,255,0.18)';
+      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.font = 'bold 17px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#bfe9ff';
+      ctx.fillText('🔒固定中', b.x + b.w / 2, b.y + b.h / 2 + 6);
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 2;
+      if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
+      else ctx.strokeRect(b.x, b.y, b.w, b.h);
+      ctx.font = 'bold 17px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText('ブロック', b.x + b.w / 2, b.y + b.h / 2 + 6);
+    }
+    if (i === state.sel) {
+      ctx.strokeStyle = '#ffd83d'; ctx.lineWidth = 3; ctx.setLineDash([8, 5]);
+      ctx.strokeRect(b.x - 5, b.y - 5, b.w + 10, b.h + 10);
+      ctx.setLineDash([]);
+      if (!b.locked) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(b.x + b.w - 13, b.y + b.h - 13, 26, 26);
+        ctx.strokeStyle = '#20304d'; ctx.lineWidth = 2;
+        ctx.strokeRect(b.x + b.w - 13, b.y + b.h - 13, 26, 26);
+      }
+    }
+    ctx.restore();
+  });
+}
+function drawTrajectory() {
+  var res = computeTrajectory();
+  var pts = res.pts;
+  if (pts.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = state.color; ctx.lineWidth = 5;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.shadowColor = state.color; ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  // 終端の矢印
+  var a = pts[pts.length - 2], b = pts[pts.length - 1];
+  var ang = Math.atan2(b.y - a.y, b.x - a.x);
+  ctx.fillStyle = state.color;
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - 20 * Math.cos(ang - 0.42), b.y - 20 * Math.sin(ang - 0.42));
+  ctx.lineTo(b.x - 20 * Math.cos(ang + 0.42), b.y - 20 * Math.sin(ang + 0.42));
+  ctx.closePath(); ctx.fill();
+  // 反射点マーカー
+  res.markers.forEach(function (m) {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(m.x, m.y, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = state.color; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#20304d';
+    ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(String(m.n), m.x, m.y + 6);
+  });
+  ctx.restore();
+}
+function drawChara() {
+  var c = state.chara;
+  ctx.save();
+  var g = ctx.createRadialGradient(c.x - c.rad * 0.3, c.y - c.rad * 0.35, c.rad * 0.2, c.x, c.y, c.rad);
+  g.addColorStop(0, 'rgba(255,205,90,' + c.opacity + ')');
+  g.addColorStop(1, 'rgba(240,140,0,' + c.opacity + ')');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(c.x, c.y, c.rad, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = c.locked ? '#39c2ff' : '#ffffff';
+  ctx.lineWidth = c.locked ? 5 : 3.5;
+  ctx.stroke();
+  ctx.font = 'bold ' + Math.max(17, Math.round(c.rad * 0.5)) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.strokeText('自機', c.x, c.y + c.rad * 0.18);
+  ctx.fillStyle = '#5b3600';
+  ctx.fillText('自機', c.x, c.y + c.rad * 0.18);
+  if (c.locked) {
+    var label = '🔒固定中';
+    ctx.font = 'bold 18px sans-serif';
+    var tw = ctx.measureText(label).width + 16;
+    var ly = c.y - c.rad - 22;
+    ctx.fillStyle = 'rgba(10,50,80,0.88)';
+    ctx.beginPath(); ctx.rect(c.x - tw / 2, ly - 14, tw, 28); ctx.fill();
+    ctx.fillStyle = '#bfe9ff';
+    ctx.fillText(label, c.x, ly + 6);
+    // ピン
+    ctx.fillStyle = '#39c2ff';
+    ctx.beginPath(); ctx.arc(c.x, c.y - c.rad - 40, 6, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+var aiming = false, aimPt = null;
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  if (state.img) ctx.drawImage(state.img, 0, 0, W, H);
+  else drawSampleStage();
+  drawFieldOverlay();
+  drawBlocks();
+  drawTrajectory();
+  if (aiming && aimPt) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(state.chara.x, state.chara.y); ctx.lineTo(aimPt.x, aimPt.y); ctx.stroke();
+    ctx.restore();
+  }
+  drawChara();
+}
+
+/* ===== ポインタ操作 ===== */
+var drag = null;
+function toCanvas(ev) {
+  var r = canvas.getBoundingClientRect();
+  return { x: (ev.clientX - r.left) * W / r.width, y: (ev.clientY - r.top) * H / r.height };
+}
+function blockAt(p) {
+  for (var i = state.blocks.length - 1; i >= 0; i--) {
+    var b = state.blocks[i];
+    if (b.type === 'circle') {
+      var dx = p.x - (b.x + b.w / 2), dy = p.y - (b.y + b.h / 2);
+      if (dx * dx + dy * dy <= (b.w / 2) * (b.w / 2)) return i;
+    } else if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) return i;
+  }
+  return -1;
+}
+function edgeAt(p) {
+  var f = state.field, TH = 16;
+  var cand = [];
+  if (Math.abs(p.y - f.t) <= TH && p.x >= f.l - TH && p.x <= f.r + TH) cand.push({ e: 't', d: Math.abs(p.y - f.t) });
+  if (Math.abs(p.y - f.b) <= TH && p.x >= f.l - TH && p.x <= f.r + TH) cand.push({ e: 'b', d: Math.abs(p.y - f.b) });
+  if (Math.abs(p.x - f.l) <= TH && p.y >= f.t - TH && p.y <= f.b + TH) cand.push({ e: 'l', d: Math.abs(p.x - f.l) });
+  if (Math.abs(p.x - f.r) <= TH && p.y >= f.t - TH && p.y <= f.b + TH) cand.push({ e: 'r', d: Math.abs(p.x - f.r) });
+  cand = cand.filter(function (c) { return !state.fieldLocks[c.e]; });
+  if (!cand.length) return null;
+  cand.sort(function (a, b) { return a.d - b.d; });
+  return cand[0].e;
+}
+canvas.addEventListener('pointerdown', function (ev) {
+  ev.preventDefault();
+  canvas.setPointerCapture(ev.pointerId);
+  var p = toCanvas(ev);
+  var c = state.chara;
+  // 選択中ブロックのリサイズハンドル
+  if (state.sel >= 0) {
+    var sb = state.blocks[state.sel];
+    if (sb && !sb.locked &&
+        Math.abs(p.x - (sb.x + sb.w)) <= 22 && Math.abs(p.y - (sb.y + sb.h)) <= 22) {
+      drag = { kind: 'resize', idx: state.sel };
+      return;
+    }
+  }
+  var bi = blockAt(p);
+  if (bi >= 0) {
+    state.sel = bi;
+    syncBlockButtons();
+    var b = state.blocks[bi];
+    if (!b.locked) drag = { kind: 'block', idx: bi, ox: p.x - b.x, oy: p.y - b.y };
+    else drag = { kind: 'aim' };
+    draw();
+    return;
+  }
+  var e = edgeAt(p);
+  if (e) { drag = { kind: 'edge', edge: e }; setField(e, (e === 'l' || e === 'r') ? p.x : p.y); return; }
+  var dx = p.x - c.x, dy = p.y - c.y;
+  if (dx * dx + dy * dy <= (c.rad + 8) * (c.rad + 8) && !c.locked) {
+    drag = { kind: 'chara', ox: dx, oy: dy };
+    return;
+  }
+  drag = { kind: 'aim' };
+  aiming = true; aimPt = p;
+  setAngleFromPull(p);
+});
+canvas.addEventListener('pointermove', function (ev) {
+  if (!drag) return;
+  var p = toCanvas(ev);
+  if (drag.kind === 'chara') {
+    state.chara.x = p.x - drag.ox; state.chara.y = p.y - drag.oy;
+    clampCharaToField(); draw();
+  } else if (drag.kind === 'block') {
+    var b = state.blocks[drag.idx];
+    if (b && !b.locked) {
+      b.x = Math.max(0, Math.min(p.x - drag.ox, W - b.w));
+      b.y = Math.max(0, Math.min(p.y - drag.oy, H - b.h));
+      draw();
+    }
+  } else if (drag.kind === 'resize') {
+    var rb = state.blocks[drag.idx];
+    if (rb && !rb.locked) {
+      var nw = Math.max(30, Math.min(p.x - rb.x, W - rb.x));
+      var nh = Math.max(30, Math.min(p.y - rb.y, H - rb.y));
+      if (rb.type === 'circle') { var d = Math.max(nw, nh); rb.w = d; rb.h = d; }
+      else { rb.w = nw; rb.h = nh; }
+      draw();
+    }
+  } else if (drag.kind === 'edge') {
+    setField(drag.edge, (drag.edge === 'l' || drag.edge === 'r') ? p.x : p.y);
+  } else if (drag.kind === 'aim') {
+    aimPt = p; setAngleFromPull(p);
+  }
+});
+function endDrag() { drag = null; aiming = false; aimPt = null; draw(); }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+function setAngleFromPull(p) {
+  // モンスト式：引っ張った反対方向へ飛ぶ
+  var c = state.chara;
+  var dx = c.x - p.x, dy = c.y - p.y;
+  if (dx * dx + dy * dy < 25) return;
+  state.angle = Math.atan2(dy, dx);
+  syncAngleUI();
+  draw();
+}
+
+/* ===== UI同期 ===== */
+function syncAngleUI() {
+  var deg = Math.round(state.angle * 180 / Math.PI);
+  $('angleRange').value = deg;
+  $('angleVal').textContent = deg + '°';
+}
+function syncCharaUI() {
+  $('charaSize').value = state.chara.rad * 2;
+  $('charaSizeVal').textContent = (state.chara.rad * 2) + 'px';
+  $('charaOpacity').value = Math.round(state.chara.opacity * 100);
+  $('charaOpacityVal').textContent = Math.round(state.chara.opacity * 100) + '%';
+  var btn = $('charaLockBtn');
+  btn.textContent = state.chara.locked ? '自機の固定を解除する' : '自機の位置を固定する';
+  btn.classList.toggle('lock-on', state.chara.locked);
+  $('charaResetBtn').disabled = state.chara.locked;
+}
+function syncBlockButtons() {
+  var b = state.sel >= 0 ? state.blocks[state.sel] : null;
+  $('dupBlock').disabled = !b;
+  $('delBlock').disabled = !b;
+  var lb = $('lockBlockBtn');
+  lb.disabled = !b;
+  lb.textContent = b && b.locked ? '選択中のブロックの固定を解除する' : '選択中のブロックを固定する';
+  lb.classList.toggle('lock-on', !!(b && b.locked));
+}
+
+/* ===== イベント配線 ===== */
+$('charaSize').addEventListener('input', function () {
+  state.chara.rad = Number(this.value) / 2;
+  clampCharaToField(); syncCharaUI(); draw();
+});
+$('charaOpacity').addEventListener('input', function () {
+  state.chara.opacity = Number(this.value) / 100;
+  syncCharaUI(); draw();
+});
+$('charaLockBtn').addEventListener('click', function () {
+  state.chara.locked = !state.chara.locked;
+  syncCharaUI(); draw();
+});
+$('charaResetBtn').addEventListener('click', function () {
+  if (state.chara.locked) return;
+  var f = state.field;
+  state.chara.x = (f.l + f.r) / 2;
+  state.chara.y = f.b - state.chara.rad - 12;
+  draw();
+});
+$('angleRange').addEventListener('input', function () {
+  state.angle = Number(this.value) * Math.PI / 180;
+  syncAngleUI(); draw();
+});
+$('reflRange').addEventListener('input', function () {
+  state.refl = Number(this.value);
+  $('reflVal').textContent = state.refl + '回';
+  draw();
+});
+$('lenRange').addEventListener('input', function () {
+  state.trajLen = Number(this.value);
+  $('lenVal').textContent = state.trajLen;
+  draw();
+});
+$('colorInput').addEventListener('input', function () { state.color = this.value; draw(); });
+$('blockMode').addEventListener('change', function () { state.blockMode = this.value; draw(); });
+
+['t', 'b', 'l', 'r'].forEach(function (e) {
+  $('f' + e.toUpperCase()).addEventListener('input', function () { setField(e, Number(this.value)); });
+  $('lock' + e.toUpperCase()).addEventListener('click', function () {
+    state.fieldLocks[e] = !state.fieldLocks[e];
+    syncFieldUI(); draw();
+  });
+});
+$('presetStd').addEventListener('click', function () { applyFieldPreset('std'); });
+$('presetFull').addEventListener('click', function () { applyFieldPreset('full'); });
+
+function addBlock(type) {
+  var f = state.field;
+  var cx = (f.l + f.r) / 2, cy = (f.t + f.b) / 2;
+  var b = type === 'circle'
+    ? { type: 'circle', x: cx - 55, y: cy - 55, w: 110, h: 110, locked: false }
+    : { type: 'rect', x: cx - 55, y: cy - 75, w: 110, h: 150, locked: false };
+  state.blocks.push(b);
+  state.sel = state.blocks.length - 1;
+  syncBlockButtons(); draw();
+}
+$('addRect').addEventListener('click', function () { addBlock('rect'); });
+$('addCircle').addEventListener('click', function () { addBlock('circle'); });
+$('dupBlock').addEventListener('click', function () {
+  var b = state.blocks[state.sel]; if (!b) return;
+  var nb = { type: b.type, x: Math.min(b.x + 26, W - b.w), y: Math.min(b.y + 26, H - b.h), w: b.w, h: b.h, locked: false };
+  state.blocks.push(nb);
+  state.sel = state.blocks.length - 1;
+  syncBlockButtons(); draw();
+});
+$('delBlock').addEventListener('click', function () {
+  if (state.sel < 0) return;
+  state.blocks.splice(state.sel, 1);
+  state.sel = -1;
+  syncBlockButtons(); draw();
+});
+$('lockBlockBtn').addEventListener('click', function () {
+  var b = state.blocks[state.sel]; if (!b) return;
+  b.locked = !b.locked;
+  syncBlockButtons(); draw();
+});
+$('lockAllBlocks').addEventListener('click', function () {
+  state.blocks.forEach(function (b) { b.locked = true; });
+  syncBlockButtons(); draw();
+});
+$('unlockAllBlocks').addEventListener('click', function () {
+  state.blocks.forEach(function (b) { b.locked = false; });
+  syncBlockButtons(); draw();
+});
+
+$('savePng').addEventListener('click', function () {
+  canvas.toBlob(function (blob) {
+    if (!blob) return;
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'monst-trajectory.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }, 'image/png');
+});
+
+/* ===== 画像読み込み ===== */
+function setCanvasSize(nw, nh) {
+  var ow = W, oh = H;
+  W = nw; H = nh;
+  canvas.width = W; canvas.height = H;
+  if (ow !== W || oh !== H) {
+    var sx = W / ow, sy = H / oh;
+    state.field.l = Math.round(state.field.l * sx); state.field.r = Math.round(state.field.r * sx);
+    state.field.t = Math.round(state.field.t * sy); state.field.b = Math.round(state.field.b * sy);
+    state.chara.x *= sx; state.chara.y *= sy;
+    state.blocks.forEach(function (b) { b.x *= sx; b.y *= sy; b.w *= sx; b.h *= sy; });
+  }
+}
+fileInput.addEventListener('change', function () {
+  var file = this.files && this.files[0];
+  if (!file) return;
+  var url = URL.createObjectURL(file);
+  var img = new Image();
+  img.onload = function () {
+    state.img = img;
+    var nh = Math.round(DEFAULT_W * img.naturalHeight / img.naturalWidth);
+    setCanvasSize(DEFAULT_W, nh);
+    applyFieldPreset('std');
+    var f = state.field;
+    if (!state.chara.locked) {
+      state.chara.x = (f.l + f.r) / 2;
+      state.chara.y = f.b - state.chara.rad - 12;
+    }
+    clampCharaToField();
+    syncFieldUI(); draw();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+  this.value = '';
+});
+$('clearImgBtn').addEventListener('click', function () {
+  state.img = null;
+  setCanvasSize(DEFAULT_W, DEFAULT_H);
+  applyFieldPreset('std');
+  var f = state.field;
+  state.chara.x = (f.l + f.r) / 2;
+  state.chara.y = f.b - state.chara.rad - 12;
+  syncFieldUI(); draw();
+});
+
+/* ===== 初期化 ===== */
+applyFieldPreset('std');
+state.chara.x = (state.field.l + state.field.r) / 2;
+state.chara.y = state.field.b - state.chara.rad - 12;
+syncFieldUI();
+syncCharaUI();
+syncAngleUI();
+syncBlockButtons();
+draw();
+</script>
+</body>
+</html>
