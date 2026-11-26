@@ -150,7 +150,7 @@
         <option value="stop">ブロックで止まる</option>
       </select>
     </div>
-    <p class="hint">画面をドラッグ：引っ張って照準（モンスト式）。反射点には番号が付きます。</p>
+    <p class="hint">フィールド内を触って、そのまま引っ張ると照準（触った場所が起点になる相対操作なので、長く引っ張るほど細かく角度を決められます）。反射点には番号が付きます。</p>
   </div>
 
   <div class="card">
@@ -612,10 +612,13 @@ function draw() {
   drawFieldOverlay();
   drawBlocks();
   drawTrajectory();
-  if (aiming && aimPt) {
+  if (aiming && aimPt && drag && drag.ax !== undefined) {
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]);
-    ctx.beginPath(); ctx.moveTo(state.chara.x, state.chara.y); ctx.lineTo(aimPt.x, aimPt.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(drag.ax, drag.ay); ctx.lineTo(aimPt.x, aimPt.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.arc(drag.ax, drag.ay, 7, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   drawChara();
@@ -670,7 +673,7 @@ canvas.addEventListener('pointerdown', function (ev) {
     syncBlockButtons();
     var b = state.blocks[bi];
     if (!b.locked) drag = { kind: 'block', idx: bi, ox: p.x - b.x, oy: p.y - b.y };
-    else drag = { kind: 'aim' };
+    else { drag = { kind: 'aim', ax: p.x, ay: p.y }; aiming = true; aimPt = p; }
     draw();
     return;
   }
@@ -684,7 +687,7 @@ canvas.addEventListener('pointerdown', function (ev) {
   // 照準はフィールド（領域）の内側を触ったときだけ開始する。領域外のタッチでは矢印は動かない
   var f = state.field;
   if (p.x >= f.l && p.x <= f.r && p.y >= f.t && p.y <= f.b) {
-    drag = { kind: 'aim' };
+    drag = { kind: 'aim', ax: p.x, ay: p.y };
     aiming = true; aimPt = p;
     setAngleFromPull(p);
   }
@@ -722,10 +725,10 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 
 function setAngleFromPull(p) {
-  // モンスト式：引っ張った反対方向へ飛ぶ
-  var c = state.chara;
-  var dx = c.x - p.x, dy = c.y - p.y;
-  if (dx * dx + dy * dy < 25) return;
+  // 相対ドラッグ：触った場所（アンカー）から引っ張った反対方向へ飛ぶ
+  if (!drag || drag.ax === undefined) return;
+  var dx = drag.ax - p.x, dy = drag.ay - p.y;
+  if (dx * dx + dy * dy < 100) return;
   state.angle = Math.atan2(dy, dx);
   syncAngleUI();
   draw();
