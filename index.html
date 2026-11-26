@@ -864,7 +864,7 @@ draw();
   }
   if (!unlocked()) gate.style.display = 'block';
   function tryUnlock() {
-    var v = $('gateInput').value.trim().toLowerCase();
+    var v = $('gateInput').value.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/\s/g, '').toLowerCase();
     if (fnv(v) === PASS_HASH) {
       try { localStorage.setItem(KEY, String(PASS_HASH)); } catch (e) {}
       gate.style.display = 'none';
