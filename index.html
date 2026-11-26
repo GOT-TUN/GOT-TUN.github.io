@@ -73,6 +73,18 @@
   #gate a.buy {
     display: inline-block; margin-top: 14px; color: #ffd83d; font-size: 15px;
   }
+  /* スクロールボタン（キャンバスが画面いっぱいで指スクロールできないため） */
+  .scroll-btns {
+    position: fixed; right: 10px; bottom: 16px; z-index: 60;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .scroll-btns button {
+    width: 48px; height: 48px; border-radius: 50%; padding: 0;
+    font-size: 19px; line-height: 1; color: #fff;
+    background: rgba(35, 47, 71, 0.88); border: 1px solid #4a5f8a;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.45); cursor: pointer;
+  }
+  .scroll-btns button:active { background: rgba(70, 95, 145, 0.95); }
 </style>
 </head>
 <body>
@@ -202,6 +214,10 @@
     </div>
     <p class="hint">フィールド・ブロック・敵・自機・軌道の設定は自動でこの端末に保存され、次に開いたとき復元されます。</p>
   </div>
+</div>
+<div class="scroll-btns">
+  <button type="button" id="scrollUpBtn" aria-label="上へスクロール">▲</button>
+  <button type="button" id="scrollDownBtn" aria-label="下へスクロール">▼</button>
 </div>
 <script>
 'use strict';
@@ -966,6 +982,14 @@ draw();
   $('gateBtn').addEventListener('click', tryUnlock);
   $('gateInput').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tryUnlock(); });
 })();
+
+/* ===== スクロールボタン ===== */
+$('scrollUpBtn').addEventListener('click', function () {
+  window.scrollBy({ top: -window.innerHeight * 0.85, behavior: 'smooth' });
+});
+$('scrollDownBtn').addEventListener('click', function () {
+  window.scrollBy({ top: window.innerHeight * 0.85, behavior: 'smooth' });
+});
 </script>
 </body>
 </html>
