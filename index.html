@@ -417,6 +417,7 @@ function drawFieldOverlay() {
 function drawBlocks() {
   state.blocks.forEach(function (b, i) {
     ctx.save();
+    ctx.globalAlpha = 0.35;
     if (b.type === 'circle') {
       var g = ctx.createRadialGradient(b.x + b.w * 0.35, b.y + b.h * 0.35, 6, b.x + b.w / 2, b.y + b.h / 2, b.w / 2);
       g.addColorStop(0, '#5a6a86'); g.addColorStop(1, '#2c3648');
@@ -428,6 +429,7 @@ function drawBlocks() {
       ctx.fillStyle = g2;
       ctx.fillRect(b.x, b.y, b.w, b.h);
     }
+    ctx.globalAlpha = 1;
     if (b.locked) {
       ctx.strokeStyle = '#7fd4ff'; ctx.lineWidth = 3.5;
       if (b.type === 'circle') { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2); ctx.stroke(); }
