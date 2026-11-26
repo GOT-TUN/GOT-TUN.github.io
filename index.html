@@ -339,9 +339,10 @@ function applyFieldPreset(kind) {
   draw();
 }
 function clampCharaToField() {
+  // 自機は「中心」だけが領域内に収まればよい（円のはみ出しは許可）
   var c = state.chara, f = state.field;
-  c.x = Math.max(f.l + c.rad, Math.min(c.x, f.r - c.rad));
-  c.y = Math.max(f.t + c.rad, Math.min(c.y, f.b - c.rad));
+  c.x = Math.max(f.l, Math.min(c.x, f.r));
+  c.y = Math.max(f.t, Math.min(c.y, f.b));
 }
 function syncFieldUI() {
   var f = state.field;
