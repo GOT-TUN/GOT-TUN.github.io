@@ -415,8 +415,8 @@ function computeTrajectory() {
   while (remaining > 0 && guard++ < 200) {
     var best = wallHit(px, py, dx, dy);
     for (var i = 0; state.blockMode !== 'through' && i < state.blocks.length; i++) {
-      var b = state.blocks[i], hit = null, R = state.chara.rad;
-      // ボール（自機）の半径ぶん判定を広げる：直径より狭い隙間は通れない
+      var b = state.blocks[i], hit = null, R = state.chara.rad * 2 / 3;
+      // ボールの2/3サイズで判定を広げる：2/3より狭い隙間は通れない
       if (b.type === 'circle') hit = rayCircle(px, py, dx, dy, b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + R);
       else hit = rayRect(px, py, dx, dy, { x: b.x - R, y: b.y - R, w: b.w + 2 * R, h: b.h + 2 * R });
       if (hit && (!best || hit.s < best.s)) { hit.block = b; best = hit; }
