@@ -118,7 +118,7 @@
   .icon-edit-row .btns { flex-direction: column; align-items: stretch; margin: 0; }
 
   /* 切り取りUI */
-  #cropWrap { position: relative; width: 100%; margin: 8px 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #cropWrap { position: relative; width: 100%; margin: 8px 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   #cropCanvas { display: block; width: 100%; height: auto; border-radius: 8px; background: #0a0f1a; }
   #cropBox {
     position: absolute; border: 2px solid #ffd83d; border-radius: 50%;
@@ -227,7 +227,7 @@
       </div>
     </div>
     <div id="cropArea" style="display:none;">
-      <p class="hint">丸をドラッグで動かし、右下の「◢」をドラッグで大きさを合わせて、キャラのアイコンにぴったり合わせてから「切り取る」を押してください。</p>
+      <p class="hint">丸をドラッグで動かし、右下の「◢」をドラッグで大きさを合わせて、キャラのアイコンにぴったり合わせてから「切り取る」を押してください。スクショ上を長押しすると、その位置に丸の中心が合います。</p>
       <div id="cropWrap">
         <canvas id="cropCanvas" width="640" height="640"></canvas>
         <div id="cropBox"><div id="cropHandle">◢</div></div>
@@ -537,6 +537,7 @@
   var crop = null; // { img, scale, x, y, size, W, H }（x,y,sizeはキャンバス座標）
 
   function hideCrop() {
+    cancelLongPress();
     crop = null;
     $('cropArea').style.display = 'none';
     $('shotInput').value = '';
@@ -579,6 +580,25 @@
   });
 
   var dragState = null;
+  var longPressTimer = null;
+  var LONG_PRESS_MS = 500;
+  var LONG_PRESS_TOL = 12; // キャンバス座標px。これ以上動いたら長押し判定をやめる
+
+  function cancelLongPress() {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  // 円の中心を指定位置に合わせる（はみ出す場合は端で止める）
+  function centerCropAt(p) {
+    var half = crop.size / 2;
+    crop.x = Math.max(0, Math.min(crop.W - crop.size, p.x - half));
+    crop.y = Math.max(0, Math.min(crop.H - crop.size, p.y - half));
+    updateCropBox();
+  }
+
   function cropPointerPos(e) {
     var rect = $('cropCanvas').getBoundingClientRect();
     return {
@@ -593,14 +613,34 @@
     dragState = {
       mode: isHandle ? 'resize' : 'move',
       dx: p.x - crop.x, dy: p.y - crop.y,
-      startX: p.x, startY: p.y, startSize: crop.size
+      startX: p.x, startY: p.y, startSize: crop.size,
+      pressX: p.x, pressY: p.y, lastX: p.x, lastY: p.y
     };
     this.setPointerCapture(e.pointerId);
     e.preventDefault();
+    cancelLongPress();
+    if (!isHandle) {
+      // 長押し：止まったまま一定時間押すと、その位置に円の中心が合う
+      longPressTimer = setTimeout(function () {
+        longPressTimer = null;
+        if (!crop || !dragState || dragState.mode !== 'move') return;
+        var c = { x: dragState.lastX, y: dragState.lastY };
+        centerCropAt(c);
+        // 中心合わせのあとも指を離さずドラッグを続けられるようオフセットを付け替える
+        dragState.dx = c.x - crop.x;
+        dragState.dy = c.y - crop.y;
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
+      }, LONG_PRESS_MS);
+    }
   });
   $('cropWrap').addEventListener('pointermove', function (e) {
     if (!crop || !dragState) return;
     var p = cropPointerPos(e);
+    dragState.lastX = p.x; dragState.lastY = p.y;
+    if (longPressTimer !== null) {
+      var moved = Math.max(Math.abs(p.x - dragState.pressX), Math.abs(p.y - dragState.pressY));
+      if (moved > LONG_PRESS_TOL) cancelLongPress(); // 動き出したらドラッグとして扱う
+    }
     if (dragState.mode === 'move') {
       crop.x = Math.max(0, Math.min(crop.W - crop.size, p.x - dragState.dx));
       crop.y = Math.max(0, Math.min(crop.H - crop.size, p.y - dragState.dy));
@@ -611,8 +651,10 @@
     }
     updateCropBox();
   });
-  $('cropWrap').addEventListener('pointerup', function () { dragState = null; });
-  $('cropWrap').addEventListener('pointercancel', function () { dragState = null; });
+  function endCropPointer() { cancelLongPress(); dragState = null; }
+  $('cropWrap').addEventListener('pointerup', endCropPointer);
+  $('cropWrap').addEventListener('pointercancel', endCropPointer);
+  $('cropWrap').addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   $('cropApplyBtn').addEventListener('click', function () {
     if (!crop) return;
