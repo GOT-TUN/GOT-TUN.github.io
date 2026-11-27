@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a2233">
+<title>編成記録（汎用版）｜スクショから自分のキャラを登録して編成を記録</title>
+<style>
+* { box-sizing: border-box;}
+html, body { margin: 0; padding: 0;}
+body {
+font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+background: #101623; color: #eef2f8; -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 680px; margin: 0 auto; padding: 28px 16px 40px;}
+h1 { font-size: 26px; margin: 0 0 6px; line-height: 1.35;}
+.sub { color: #aeb9cc; font-size: 15px; line-height: 1.7; margin: 0 0 20px;}
+.price-box {
+background: #1a2233; border: 1px solid #2b3852; border-radius: 14px;
+padding: 18px; text-align: center; margin: 0 0 22px;
+}
+.price { font-size: 34px; font-weight: 800; color: #ffd83d;}
+.price small { font-size: 14px; color: #aeb9cc; font-weight: 400;}
+a.buy-btn {
+display: block; margin-top: 14px; padding: 15px; border-radius: 11px;
+background: #b97e0a; color: #fff; font-size: 17px; font-weight: 700;
+text-decoration: none;
+}
+a.buy-btn:active { background: #d99a17;}
+.card {
+background: #1a2233; border: 1px solid #2b3852; border-radius: 12px;
+padding: 16px 18px; margin-top: 14px;
+}
+.card h2 { font-size: 16px; margin: 0 0 10px; color: #ffd83d;}
+.card ul { margin: 0; padding-left: 20px; line-height: 1.9; font-size: 14px;}
+.card p,.card li { font-size: 14px; line-height: 1.8; color: #dbe4f2;}
+.steps { counter-reset: st; list-style: none; padding: 0; margin: 0;}
+.steps li { padding: 4px 0 4px 6px;}
+.small { font-size: 12px; color: #93a3bd; line-height: 1.7;}
+table.tokusho { width: 100%; border-collapse: collapse; font-size: 13px;}
+table.tokusho th, table.tokusho td {
+border: 1px solid #2b3852; padding: 8px 10px; text-align: left; vertical-align: top;
+}
+table.tokusho th { width: 34%; color: #cfd8ea; font-weight: 600; background: #141b2c;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>編成記録（汎用版）</h1>
+<p class="sub">自分のゲーム画面のスクショからキャラを登録して、クエストごとの編成を記録できるWebツールです。モンストの編成記録などに使えます。アプリのインストールは不要で、スマホのブラウザでそのまま使えます。</p>
+
+<div class="price-box">
+<div class="price">¥330 <small>（税込・買い切り）</small></div>
+<a class="buy-btn" id="buyBtn" href="https://buy.stripe.com/6oU14n9hpeHI5Im9Kt7N602">購入する（パスコード発行）</a>
+<p class="small" style="margin:10px 0 0;">クレジットカード / Apple Pay などで支払えます。支払い完了後、すぐにパスコードが表示されます。</p>
+</div>
+
+<div class="card">
+<h2>できること</h2>
+<ul>
+<li>スクショを読み込んで、キャラのアイコン部分を正方形に切り取って登録</li>
+<li>キャラごとに名前・属性（火／水／木／光／闇）・撃種（反射／貫通）・種族・メモを登録</li>
+<li>アイコンは2層リング表示（内側＝撃種の色、外側＝属性の色）でひと目で区別</li>
+<li>クエストごとに4枠の編成を記録（4枠目は助っ人）</li>
+<li>編成のコピー、クエスト名・キャラ名での検索、カテゴリでの絞り込み</li>
+<li>データはお使いの端末内に保存（外部に送信されません）</li>
+<li>JSON形式のエクスポート／インポートでバックアップ・機種変更にも対応</li>
+<li>ホーム画面に追加すればアプリのように起動できます</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>使い方</h2>
+<ol class="steps">
+<li>① キャラ登録画面で、自分のゲーム画面のスクショを読み込む</li>
+<li>② アイコンの部分を正方形に切り取って、名前・属性・撃種などを入力して登録</li>
+<li>③ クエストを作成し、4つの枠に登録したキャラを入れて編成を記録</li>
+</ol>
+<p class="small">本ツールにゲームの素材やプリセットデータは含まれていません。キャラのアイコンは、購入者ご自身のスクリーンショットから切り取って登録する方式です。</p>
+</div>
+
+<div class="card">
+<h2>購入の流れ</h2>
+<ol class="steps">
+<li>① 上の「購入する」ボタンから決済ページへ</li>
+<li>② 支払いが完了すると、パスコードが表示されます</li>
+<li>③ ツールを開いてパスコードを入力すれば使えます（入力は端末に記憶されます）</li>
+</ol>
+<p class="small">パスコードは購入者本人の利用のためのものです。他人への共有・転売はご遠慮ください。</p>
+</div>
+
+<div class="card">
+<h2>よくある確認事項</h2>
+<ul>
+<li>データはどこに保存されますか？ → お使いの端末のブラウザ内に保存されます。サーバーへ送信されることはありません。</li>
+<li>機種変更したらデータは消えますか？ → エクスポートしたJSONファイルを新しい端末でインポートすれば引き継げます。</li>
+<li>キャラの画像は入っていますか？ → 入っていません。ご自身のスクショから切り取って登録していただく方式です。</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>動作環境</h2>
+<p>iPhone（Safari）/ Android（Chrome）など、モダンブラウザで動作します。読み込んだ画像が外部に送信されることはありません（すべて端末内で処理されます）。</p>
+</div>
+
+<div class="card">
+<h2>特定商取引法に基づく表記</h2>
+<table class="tokusho">
+<tr><th>販売者</th><td>五島章弘</td></tr>
+<tr><th>住所</th><td>請求があった場合、遅滞なく開示いたします</td></tr>
+<tr><th>電話番号</th><td>請求があった場合、遅滞なく開示いたします</td></tr>
+<tr><th>メールアドレス</th><td>tmh252919@gmail.com</td></tr>
+<tr><th>販売価格</th><td>¥330（税込）</td></tr>
+<tr><th>支払方法</th><td>クレジットカード等（Stripe決済）</td></tr>
+<tr><th>商品の引渡時期</th><td>決済完了直後、完了ページでパスコードを表示</td></tr>
+<tr><th>返品・キャンセル</th><td>デジタルコンテンツの性質上、パスコード表示後の返品・返金はお受けできません。不具合がある場合はメールでご連絡ください。</td></tr>
+</table>
+</div>
+
+<p class="small" style="margin-top:18px;">本ツールは非公式のファンメイドツールであり、対象ゲームの運営会社とは関係ありません。ゲームのスクリーンショットは利用者自身が用意するもので、本ツール自体にゲームの素材は含まれていません。</p>
+</div>
+</body>
+</html>
