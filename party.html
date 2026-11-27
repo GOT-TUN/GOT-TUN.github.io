@@ -121,7 +121,7 @@
   #cropWrap { position: relative; width: 100%; margin: 8px 0; touch-action: none; user-select: none; -webkit-user-select: none; }
   #cropCanvas { display: block; width: 100%; height: auto; border-radius: 8px; background: #0a0f1a; }
   #cropBox {
-    position: absolute; border: 2px solid #ffd83d; border-radius: 6px;
+    position: absolute; border: 2px solid #ffd83d; border-radius: 50%;
     box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); cursor: move; box-sizing: border-box;
   }
   #cropHandle {
@@ -227,7 +227,7 @@
       </div>
     </div>
     <div id="cropArea" style="display:none;">
-      <p class="hint">四角をドラッグで動かし、右下の「◢」をドラッグで大きさを合わせて、キャラのアイコンにぴったり合わせてから「切り取る」を押してください。</p>
+      <p class="hint">丸をドラッグで動かし、右下の「◢」をドラッグで大きさを合わせて、キャラのアイコンにぴったり合わせてから「切り取る」を押してください。</p>
       <div id="cropWrap">
         <canvas id="cropCanvas" width="640" height="640"></canvas>
         <div id="cropBox"><div id="cropHandle">◢</div></div>
@@ -620,6 +620,9 @@
     out.width = 160; out.height = 160;
     var ctx = out.getContext('2d');
     var sx = crop.x / crop.scale, sy = crop.y / crop.scale, ss = crop.size / crop.scale;
+    ctx.beginPath();
+    ctx.arc(80, 80, 80, 0, Math.PI * 2);
+    ctx.clip();
     ctx.drawImage(crop.img, sx, sy, ss, ss, 0, 0, 160, 160);
     pendingIcon = out.toDataURL('image/png');
     hideCrop();
