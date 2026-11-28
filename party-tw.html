@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="編隊記錄">
+<meta name="theme-color" content="#1a2233">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%231a2233'/%3E%3Ccircle cx='62' cy='90' r='34' fill='none' stroke='%23f97316' stroke-width='9'/%3E%3Ccircle cx='62' cy='90' r='47' fill='none' stroke='%2338bdf8' stroke-width='7'/%3E%3Ccircle cx='122' cy='90' r='24' fill='none' stroke='%233b82f6' stroke-width='8'/%3E%3Ccircle cx='122' cy='90' r='35' fill='none' stroke='%23ef4444' stroke-width='6'/%3E%3C/svg%3E">
+<title>編隊記錄（通用版）</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    background: #101623; color: #eef2f8; -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 10px 10px 40px; }
+  h1 { font-size: 20px; margin: 6px 2px 2px; }
+  .sub { color: #aeb9cc; font-size: 13px; margin: 0 2px 10px; line-height: 1.6; }
+  .card {
+    background: #1a2233; border: 1px solid #2b3852; border-radius: 12px;
+    padding: 12px 14px; margin-top: 12px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 10px; color: #ffd83d; }
+  .card h2 .count { color: #aeb9cc; font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+  input[type="text"], textarea {
+    font-size: 15px; padding: 10px; border-radius: 8px; border: 1px solid #3a4a6b;
+    background: #232f47; color: #fff; width: 100%;
+  }
+  textarea { resize: vertical; }
+  select {
+    font-size: 14px; padding: 9px 8px; border-radius: 8px; border: 1px solid #3a4a6b;
+    background: #232f47; color: #fff;
+  }
+  button {
+    font-size: 14px; padding: 9px 13px; border-radius: 9px; border: 1px solid #3a4a6b;
+    background: #232f47; color: #fff; cursor: pointer;
+  }
+  button:active { background: #2e3d5c; }
+  button.primary { background: #b97e0a; border-color: #d99a17; font-weight: 700; }
+  button.danger { background: #5c2323; border-color: #8a3a3a; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .hint { font-size: 12px; color: #93a3bd; margin: 6px 0 0; line-height: 1.6; }
+  .file-btn { position: relative; overflow: hidden; display: inline-block; }
+  .file-btn input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+  }
+  .err { color: #ff8f8f; font-size: 13px; min-height: 18px; margin: 4px 0; }
+
+  /* 角色圖示（雙層環：內側=擊種色，外側=屬性色） */
+  .orb { display: inline-flex; border-radius: 50%; padding: 3px; flex: none; box-sizing: border-box; }
+  .orb-in { flex: 1; border-radius: 50%; padding: 3px; display: flex; box-sizing: border-box; min-width: 0; }
+  .orb-in img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .orb-letter {
+    flex: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 20px; text-shadow: 0 1px 3px rgba(0,0,0,.5);
+  }
+  .orb-empty {
+    display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
+    border: 2px dashed #4a5f8a; color: #7d8fb3; font-size: 20px; flex: none; box-sizing: border-box;
+    background: #141c2e;
+  }
+
+  /* 持有角色清單 */
+  .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+  .char-tile {
+    display: flex; align-items: center; gap: 9px; text-align: left; width: 100%;
+    background: #232f47; border: 1px solid #2b3852; border-radius: 12px; padding: 8px;
+  }
+  .char-tile .ct-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .char-tile .ct-sub { font-size: 11px; color: #aeb9cc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .char-tile .ct-info { min-width: 0; }
+
+  /* 關卡卡片 */
+  .quest-wrap { margin-top: 14px; }
+  .quest-card { background: #141c2e; border: 1px solid #2b3852; border-radius: 12px; padding: 12px; }
+  .quest-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .quest-name { font-size: 16px; font-weight: 700; }
+  .chip {
+    font-size: 11px; color: #cfd8ea; background: #232f47; border: 1px solid #3a4a6b;
+    border-radius: 999px; padding: 3px 9px;
+  }
+  .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .slot {
+    background: none; border: none; padding: 4px 2px; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; min-width: 0; cursor: pointer;
+  }
+  .slot-name {
+    font-size: 12px; color: #eef2f8; width: 100%; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+  }
+  .slot-name.none { color: #5f708f; }
+  .slot-label { font-size: 11px; color: #93a3bd; line-height: 1.2; }
+  .quest-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .quest-btns button { font-size: 13px; padding: 7px 11px; }
+  .quest-date { text-align: right; font-size: 12px; color: #93a3bd; margin: 5px 4px 0; }
+
+  /* 彈窗 */
+  .modal {
+    position: fixed; inset: 0; z-index: 500; display: none;
+    background: rgba(5, 8, 15, 0.82); overflow-y: auto; padding: 18px 12px 40px;
+  }
+  .modal.open { display: block; }
+  .sheet {
+    max-width: 520px; margin: 0 auto; background: #1a2233; border: 1px solid #2b3852;
+    border-radius: 14px; padding: 16px;
+  }
+  .sheet h3 { margin: 0 0 12px; font-size: 16px; }
+  .fld { display: block; font-size: 13px; color: #cfd8ea; margin: 10px 0; }
+  .fld input, .fld select, .fld textarea { margin-top: 5px; }
+  .fld select { width: 100%; }
+  .sheet-btns { margin-top: 14px; }
+  .icon-edit-row { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+  .icon-edit-row .btns { flex-direction: column; align-items: stretch; margin: 0; }
+
+  /* 裁切 UI */
+  #cropWrap { position: relative; width: 100%; margin: 8px 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #cropCanvas { display: block; width: 100%; height: auto; border-radius: 8px; background: #0a0f1a; }
+  #cropBox {
+    position: absolute; border: 2px solid #ffd83d; border-radius: 50%;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); cursor: move; box-sizing: border-box;
+  }
+  #cropHandle {
+    position: absolute; right: -14px; bottom: -14px; width: 30px; height: 30px;
+    background: #ffd83d; color: #1a2233; border-radius: 50%; cursor: nwse-resize;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700;
+    touch-action: none;
+  }
+
+  /* 通行碼閘門 */
+  #gate {
+    position: fixed; inset: 0; z-index: 1000; display: none;
+    background: rgba(8, 12, 22, 0.97); padding: 32px 18px; overflow-y: auto;
+  }
+  #gate .box { max-width: 420px; margin: 8vh auto 0; text-align: center; }
+  #gate h2 { font-size: 21px; margin: 0 0 8px; }
+  #gate p { color: #aeb9cc; font-size: 14px; line-height: 1.7; }
+  #gate input[type="text"] {
+    width: 100%; font-size: 17px; padding: 12px; border-radius: 10px; margin: 12px 0 10px;
+    border: 1px solid #3a4a6b; background: #232f47; color: #fff; text-align: center;
+  }
+  #gate .err { color: #ff8f8f; font-size: 13px; min-height: 20px; }
+
+  /* 捲動按鈕 */
+  .scroll-btns {
+    position: fixed; right: 10px; bottom: 16px; z-index: 60;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .scroll-btns button {
+    width: 48px; height: 48px; border-radius: 50%; padding: 0;
+    font-size: 19px; line-height: 1; color: #fff;
+    background: rgba(35, 47, 71, 0.88); border: 1px solid #4a5f8a;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.45); cursor: pointer;
+  }
+  .scroll-btns button:active { background: rgba(70, 95, 145, 0.95); }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: #232f47; border: 1px solid #4a5f8a; color: #fff; font-size: 14px;
+    padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s; z-index: 900; box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    max-width: 88vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="box">
+    <h2>🔒 編隊記錄</h2>
+    <p>這是付費版工具。請輸入購買時取得的通行碼。輸入後會記住在此裝置上，不需每次輸入。</p>
+    <input type="text" id="gateInput" placeholder="通行碼" autocomplete="off" autocapitalize="none">
+    <div class="err" id="gateErr"></div>
+    <button type="button" class="primary" id="gateBtn" style="width:100%;font-size:16px;padding:13px;">解除鎖定</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>編隊記錄</h1>
+  <p class="sub">從自己的遊戲截圖登錄角色，記錄每個關卡編隊的工具。一開始是空白狀態，從零開始建立自己的編隊資料。資料只保存在此裝置內。本工具為非官方粉絲自製工具，與遊戲官方無關，亦不包含任何官方素材。</p>
+
+  <div class="card">
+    <h2>關卡編隊</h2>
+    <div class="row">
+      <input type="text" id="searchInput" placeholder="搜尋關卡名稱・角色名稱" style="flex:1;min-width:160px;">
+    </div>
+    <div class="row">
+      <select id="catFilter" style="flex:1;min-width:140px;"><option value="">所有分類</option></select>
+      <button type="button" class="primary" id="addQuestBtn">＋ 新增關卡</button>
+    </div>
+    <div id="questList"></div>
+    <p class="hint" id="questEmpty">尚無關卡。請從「＋ 新增關卡」建立第一個編隊。點選欄位即可選擇已登錄的角色。</p>
+  </div>
+
+  <div class="card">
+    <h2>持有角色 <span class="count" id="charCount"></span></h2>
+    <div class="btns">
+      <button type="button" class="primary" id="addCharBtn">＋ 登錄角色</button>
+    </div>
+    <div id="charList" class="char-grid"></div>
+    <p class="hint" id="charEmpty">尚無角色。請從「＋ 登錄角色」載入持有角色的截圖（例如怪物箱畫面），裁切圖示後登錄。也可以不使用圖片登錄。</p>
+  </div>
+
+  <div class="card">
+    <h2>資料備份</h2>
+    <div class="btns">
+      <button type="button" id="exportBtn">匯出（JSON）</button>
+      <span class="file-btn"><button type="button">匯入（JSON）</button><input type="file" id="importInput" accept=".json,application/json"></span>
+    </div>
+    <p class="hint">資料保存在此裝置的瀏覽器內。更換裝置或清除瀏覽器資料時可能會遺失，請定期匯出 JSON 保存。匯入時會覆寫目前的資料。</p>
+  </div>
+</div>
+
+<!-- 編輯角色彈窗 -->
+<div class="modal" id="charModal">
+  <div class="sheet">
+    <h3 id="charModalTitle">登錄角色</h3>
+    <div class="icon-edit-row">
+      <div id="iconPreview"></div>
+      <div class="btns">
+        <span class="file-btn"><button type="button">選擇截圖</button><input type="file" id="shotInput" accept="image/*"></span>
+        <button type="button" id="removeIconBtn">移除圖示</button>
+      </div>
+    </div>
+    <div id="cropArea" style="display:none;">
+      <p class="hint">拖曳圓圈移動，拖曳右下角的「◢」調整大小，對準角色圖示後按下「裁切此範圍」。在截圖上長按，可將圓心對準該位置。</p>
+      <div id="cropWrap">
+        <canvas id="cropCanvas" width="640" height="640"></canvas>
+        <div id="cropBox"><div id="cropHandle">◢</div></div>
+      </div>
+      <div class="btns">
+        <button type="button" class="primary" id="cropApplyBtn">裁切此範圍</button>
+        <button type="button" id="cropCancelBtn">取消</button>
+      </div>
+    </div>
+    <label class="fld">名稱<input type="text" id="fName" placeholder="角色名稱"></label>
+    <label class="fld">屬性
+      <select id="fAttr">
+        <option value="火">火</option>
+        <option value="水">水</option>
+        <option value="木">木</option>
+        <option value="光">光</option>
+        <option value="暗">暗</option>
+      </select>
+    </label>
+    <label class="fld">擊種
+      <select id="fType">
+        <option value="反射">反射</option>
+        <option value="貫通">貫通</option>
+      </select>
+    </label>
+    <label class="fld">種族<input type="text" id="fRace" placeholder="例：神、亞人、妖精、魔族…"></label>
+    <label class="fld">備註<textarea id="fMemo" rows="2" placeholder="自由備註"></textarea></label>
+    <div class="err" id="charErr"></div>
+    <div class="btns sheet-btns">
+      <button type="button" class="primary" id="charSaveBtn">儲存</button>
+      <button type="button" id="charCancelBtn">取消</button>
+      <button type="button" class="danger" id="charDeleteBtn">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯關卡彈窗 -->
+<div class="modal" id="questModal">
+  <div class="sheet">
+    <h3 id="questModalTitle">新增關卡</h3>
+    <label class="fld">關卡名稱<input type="text" id="qName" placeholder="關卡名稱"></label>
+    <label class="fld">分類<input type="text" id="qCat" list="catList" placeholder="例：轟絕、爆絕、超絕…"><datalist id="catList"></datalist></label>
+    <div class="err" id="questErr"></div>
+    <div class="btns sheet-btns">
+      <button type="button" class="primary" id="questSaveBtn">儲存</button>
+      <button type="button" id="questCancelBtn">取消</button>
+      <button type="button" class="danger" id="questDeleteBtn">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 選擇角色彈窗 -->
+<div class="modal" id="pickerModal">
+  <div class="sheet">
+    <h3>選擇角色</h3>
+    <div id="pickerList" class="char-grid"></div>
+    <p class="hint" id="pickerEmpty">尚無已登錄的角色。請先從「＋ 登錄角色」新增角色。</p>
+    <div class="btns sheet-btns">
+      <button type="button" id="pickerClearBtn">清除此欄位</button>
+      <button type="button" id="pickerCancelBtn">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-btns">
+  <button type="button" id="scrollUpBtn" aria-label="向上捲動">▲</button>
+  <button type="button" id="scrollDownBtn" aria-label="向下捲動">▼</button>
+</div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ===== 常數 ===== */
+  var DATA_KEY = 'party_generic_tw_v1';
+  var ATTR_COLORS = { '火': '#ef4444', '水': '#38bdf8', '木': '#4ade80', '光': '#fbbf24', '暗': '#a855f7' };
+  var TYPE_COLORS = { '反射': '#f97316', '貫通': '#3b82f6' };
+  var SLOT_LABELS = ['第1位', '第2位', '第3位', '助戰'];
+
+  /* ===== 資料 ===== */
+  var data = loadData();
+  function loadData() {
+    try {
+      var raw = localStorage.getItem(DATA_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && Array.isArray(d.characters) && Array.isArray(d.quests)) return d;
+      }
+    } catch (e) {}
+    return { characters: [], quests: [] };
+  }
+  function saveData() {
+    try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); }
+    catch (e) { toast('無法儲存（可能容量不足）'); }
+  }
+  function uid() { return 'id' + Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36); }
+  function findChar(id) {
+    for (var i = 0; i < data.characters.length; i++) if (data.characters[i].id === id) return data.characters[i];
+    return null;
+  }
+  function findQuest(id) {
+    for (var i = 0; i < data.quests.length; i++) if (data.quests[i].id === id) return data.quests[i];
+    return null;
+  }
+  function fmtDate(ts) {
+    var d = new Date(ts);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '/' + p(d.getMonth() + 1) + '/' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  /* ===== 提示訊息 ===== */
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  /* ===== 圖示繪製（雙層環：內側=擊種色 / 外側=屬性色） ===== */
+  function orbHTML(ch, size) {
+    var attr = ATTR_COLORS[ch.attr] || '#888';
+    var type = TYPE_COLORS[ch.type] || '#9aa3bd';
+    var core;
+    if (ch.icon) {
+      core = '<img src="' + ch.icon + '" alt="">';
+    } else {
+      core = '<div class="orb-letter" style="background:' + attr + '">' + esc((ch.name || '？').charAt(0)) + '</div>';
+    }
+    return '<span class="orb" style="width:' + size + 'px;height:' + size + 'px;background:' + attr + '">' +
+      '<span class="orb-in" style="background:' + type + '">' + core + '</span></span>';
+  }
+  function charSub(ch) {
+    var parts = [];
+    if (ch.race) parts.push(ch.race);
+    if (ch.type) parts.push(ch.type);
+    return parts.join(' ・ ');
+  }
+
+  /* ===== 繪製：關卡 ===== */
+  function renderQuests() {
+    var q = $('searchInput').value.trim().toLowerCase();
+    var cat = $('catFilter').value;
+    var list = data.quests.filter(function (quest) {
+      if (cat && quest.category !== cat) return false;
+      if (!q) return true;
+      if ((quest.name || '').toLowerCase().indexOf(q) >= 0) return true;
+      if ((quest.category || '').toLowerCase().indexOf(q) >= 0) return true;
+      for (var i = 0; i < quest.slots.length; i++) {
+        var c = quest.slots[i] ? findChar(quest.slots[i]) : null;
+        if (c && c.name.toLowerCase().indexOf(q) >= 0) return true;
+      }
+      return false;
+    });
+    list.sort(function (a, b) { return b.updated - a.updated; });
+    var html = '';
+    list.forEach(function (quest) {
+      html += '<div class="quest-wrap"><div class="quest-card" data-qid="' + quest.id + '">';
+      html += '<div class="quest-head"><div class="quest-name">' + esc(quest.name) + '</div>';
+      if (quest.category) html += '<span class="chip">' + esc(quest.category) + '</span>';
+      html += '</div><div class="slots">';
+      for (var i = 0; i < 4; i++) {
+        var ch = quest.slots[i] ? findChar(quest.slots[i]) : null;
+        html += '<button type="button" class="slot" data-slot="' + i + '">';
+        if (ch) {
+          html += orbHTML(ch, 62);
+          html += '<span class="slot-name">' + esc(ch.name) + '</span>';
+        } else {
+          html += '<span class="orb-empty" style="width:62px;height:62px;">＋</span>';
+          html += '<span class="slot-name none">未設定</span>';
+        }
+        html += '<span class="slot-label">' + SLOT_LABELS[i] + '</span></button>';
+      }
+      html += '</div><div class="quest-btns">' +
+        '<button type="button" data-act="copy">複製編隊</button>' +
+        '<button type="button" data-act="edit">編輯</button></div>';
+      html += '</div><div class="quest-date">更新：' + fmtDate(quest.updated) + '</div></div>';
+    });
+    $('questList').innerHTML = html;
+    $('questEmpty').style.display = data.quests.length === 0 ? 'block' : 'none';
+    if (data.quests.length > 0 && list.length === 0) {
+      $('questList').innerHTML = '<p class="hint">沒有符合條件的關卡。</p>';
+    }
+  }
+
+  /* ===== 繪製：分類篩選 ===== */
+  function renderCatFilter() {
+    var sel = $('catFilter');
+    var cur = sel.value;
+    var cats = [];
+    data.quests.forEach(function (quest) {
+      if (quest.category && cats.indexOf(quest.category) < 0) cats.push(quest.category);
+    });
+    var html = '<option value="">所有分類</option>';
+    cats.forEach(function (c) { html += '<option value="' + esc(c) + '">' + esc(c) + '</option>'; });
+    sel.innerHTML = html;
+    if (cats.indexOf(cur) >= 0) sel.value = cur;
+    var dl = '';
+    cats.forEach(function (c) { dl += '<option value="' + esc(c) + '">'; });
+    $('catList').innerHTML = dl;
+  }
+
+  /* ===== 繪製：持有角色 ===== */
+  function renderChars() {
+    var html = '';
+    data.characters.forEach(function (ch) {
+      html += '<button type="button" class="char-tile" data-cid="' + ch.id + '">' + orbHTML(ch, 54) +
+        '<span class="ct-info"><span class="ct-name">' + esc(ch.name) + '</span><br>' +
+        '<span class="ct-sub">' + esc(charSub(ch) || '　') + '</span></span></button>';
+    });
+    $('charList').innerHTML = html;
+    $('charEmpty').style.display = data.characters.length === 0 ? 'block' : 'none';
+    $('charCount').textContent = data.characters.length ? data.characters.length + '隻' : '';
+  }
+
+  function renderAll() { renderCatFilter(); renderQuests(); renderChars(); }
+
+  /* ===== 彈窗開關 ===== */
+  function openModal(id) { $(id).classList.add('open'); }
+  function closeModal(id) { $(id).classList.remove('open'); }
+
+  /* ===== 編輯角色 ===== */
+  var editingCharId = null;
+  var pendingIcon = null; // 編輯中的圖示（dataURL 或 null）
+
+  function updateIconPreview() {
+    var pseudo = {
+      name: $('fName').value || '？',
+      attr: $('fAttr').value,
+      type: $('fType').value,
+      icon: pendingIcon
+    };
+    $('iconPreview').innerHTML = orbHTML(pseudo, 76);
+    $('removeIconBtn').style.display = pendingIcon ? '' : 'none';
+  }
+
+  function openCharEditor(id) {
+    editingCharId = id;
+    var ch = id ? findChar(id) : null;
+    $('charModalTitle').textContent = ch ? '編輯角色' : '登錄角色';
+    $('fName').value = ch ? ch.name : '';
+    $('fAttr').value = ch && ATTR_COLORS[ch.attr] ? ch.attr : '火';
+    $('fType').value = ch && TYPE_COLORS[ch.type] ? ch.type : '反射';
+    $('fRace').value = ch ? (ch.race || '') : '';
+    $('fMemo').value = ch ? (ch.memo || '') : '';
+    pendingIcon = ch ? (ch.icon || null) : null;
+    $('charErr').textContent = '';
+    $('charDeleteBtn').style.display = ch ? '' : 'none';
+    hideCrop();
+    updateIconPreview();
+    openModal('charModal');
+  }
+
+  $('addCharBtn').addEventListener('click', function () { openCharEditor(null); });
+  $('charList').addEventListener('click', function (e) {
+    var tile = e.target.closest('.char-tile');
+    if (tile) openCharEditor(tile.getAttribute('data-cid'));
+  });
+  $('charCancelBtn').addEventListener('click', function () { closeModal('charModal'); });
+  $('fName').addEventListener('input', updateIconPreview);
+  $('fAttr').addEventListener('change', updateIconPreview);
+  $('fType').addEventListener('change', updateIconPreview);
+  $('removeIconBtn').addEventListener('click', function () { pendingIcon = null; updateIconPreview(); });
+
+  $('charSaveBtn').addEventListener('click', function () {
+    var name = $('fName').value.trim();
+    if (!name) { $('charErr').textContent = '請輸入名稱。'; return; }
+    var fields = {
+      name: name,
+      attr: $('fAttr').value,
+      type: $('fType').value,
+      race: $('fRace').value.trim(),
+      memo: $('fMemo').value.trim(),
+      icon: pendingIcon
+    };
+    if (editingCharId) {
+      var ch = findChar(editingCharId);
+      if (ch) { for (var k in fields) ch[k] = fields[k]; }
+    } else {
+      fields.id = uid();
+      data.characters.push(fields);
+    }
+    saveData(); renderAll(); closeModal('charModal');
+    toast('已儲存');
+  });
+
+  $('charDeleteBtn').addEventListener('click', function () {
+    if (!editingCharId) return;
+    if (!window.confirm('要刪除此角色嗎？若已放入編隊，也會從欄位中移除。')) return;
+    data.characters = data.characters.filter(function (c) { return c.id !== editingCharId; });
+    data.quests.forEach(function (quest) {
+      quest.slots = quest.slots.map(function (sid) { return sid === editingCharId ? null : sid; });
+    });
+    saveData(); renderAll(); closeModal('charModal');
+    toast('已刪除');
+  });
+
+  /* ===== 截圖裁切 ===== */
+  var crop = null; // { img, scale, x, y, size, W, H }（x、y、size 為畫布座標）
+
+  function hideCrop() {
+    cancelLongPress();
+    crop = null;
+    $('cropArea').style.display = 'none';
+    $('shotInput').value = '';
+  }
+
+  function updateCropBox() {
+    if (!crop) return;
+    var box = $('cropBox');
+    box.style.left = (crop.x / crop.W * 100) + '%';
+    box.style.top = (crop.y / crop.H * 100) + '%';
+    box.style.width = (crop.size / crop.W * 100) + '%';
+    box.style.height = (crop.size / crop.H * 100) + '%';
+  }
+
+  function setupCrop(img) {
+    var canvas = $('cropCanvas');
+    var scale = Math.min(1, 640 / img.naturalWidth);
+    var W = Math.round(img.naturalWidth * scale);
+    var H = Math.round(img.naturalHeight * scale);
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    var size = Math.round(Math.min(W, H) * 0.35);
+    crop = {
+      img: img, scale: scale, W: W, H: H,
+      x: Math.round((W - size) / 2), y: Math.round((H - size) / 2), size: size
+    };
+    $('cropArea').style.display = 'block';
+    updateCropBox();
+  }
+
+  $('shotInput').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () { setupCrop(img); };
+    img.onerror = function () { toast('無法載入圖片'); URL.revokeObjectURL(url); };
+    img.src = url;
+  });
+
+  var dragState = null;
+  var longPressTimer = null;
+  var LONG_PRESS_MS = 500;
+  var LONG_PRESS_TOL = 12; // 畫布座標 px。移動超過此距離就取消長按判定
+
+  function cancelLongPress() {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  // 將圓心對準指定位置（超出時停在邊緣）
+  function centerCropAt(p) {
+    var half = crop.size / 2;
+    crop.x = Math.max(0, Math.min(crop.W - crop.size, p.x - half));
+    crop.y = Math.max(0, Math.min(crop.H - crop.size, p.y - half));
+    updateCropBox();
+  }
+
+  function cropPointerPos(e) {
+    var rect = $('cropCanvas').getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width * crop.W,
+      y: (e.clientY - rect.top) / rect.height * crop.H
+    };
+  }
+  $('cropWrap').addEventListener('pointerdown', function (e) {
+    if (!crop) return;
+    var p = cropPointerPos(e);
+    var isHandle = e.target === $('cropHandle');
+    dragState = {
+      mode: isHandle ? 'resize' : 'move',
+      dx: p.x - crop.x, dy: p.y - crop.y,
+      startX: p.x, startY: p.y, startSize: crop.size,
+      pressX: p.x, pressY: p.y, lastX: p.x, lastY: p.y
+    };
+    this.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    cancelLongPress();
+    if (!isHandle) {
+      // 長按：停住一段時間後，圓心對準該位置
+      longPressTimer = setTimeout(function () {
+        longPressTimer = null;
+        if (!crop || !dragState || dragState.mode !== 'move') return;
+        var c = { x: dragState.lastX, y: dragState.lastY };
+        centerCropAt(c);
+        // 對準後不放開手指也能繼續拖曳，重新設定偏移
+        dragState.dx = c.x - crop.x;
+        dragState.dy = c.y - crop.y;
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
+      }, LONG_PRESS_MS);
+    }
+  });
+  $('cropWrap').addEventListener('pointermove', function (e) {
+    if (!crop || !dragState) return;
+    var p = cropPointerPos(e);
+    dragState.lastX = p.x; dragState.lastY = p.y;
+    if (longPressTimer !== null) {
+      var moved = Math.max(Math.abs(p.x - dragState.pressX), Math.abs(p.y - dragState.pressY));
+      if (moved > LONG_PRESS_TOL) cancelLongPress(); // 開始移動後視為拖曳
+    }
+    if (dragState.mode === 'move') {
+      crop.x = Math.max(0, Math.min(crop.W - crop.size, p.x - dragState.dx));
+      crop.y = Math.max(0, Math.min(crop.H - crop.size, p.y - dragState.dy));
+    } else {
+      var delta = Math.max(p.x - dragState.startX, p.y - dragState.startY);
+      var maxSize = Math.min(crop.W - crop.x, crop.H - crop.y);
+      crop.size = Math.max(36, Math.min(maxSize, dragState.startSize + delta));
+    }
+    updateCropBox();
+  });
+  function endCropPointer() { cancelLongPress(); dragState = null; }
+  $('cropWrap').addEventListener('pointerup', endCropPointer);
+  $('cropWrap').addEventListener('pointercancel', endCropPointer);
+  $('cropWrap').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  $('cropApplyBtn').addEventListener('click', function () {
+    if (!crop) return;
+    var out = document.createElement('canvas');
+    out.width = 160; out.height = 160;
+    var ctx = out.getContext('2d');
+    var sx = crop.x / crop.scale, sy = crop.y / crop.scale, ss = crop.size / crop.scale;
+    ctx.beginPath();
+    ctx.arc(80, 80, 80, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(crop.img, sx, sy, ss, ss, 0, 0, 160, 160);
+    pendingIcon = out.toDataURL('image/png');
+    hideCrop();
+    updateIconPreview();
+    toast('已裁切圖示');
+  });
+  $('cropCancelBtn').addEventListener('click', hideCrop);
+
+  /* ===== 編輯關卡 ===== */
+  var editingQuestId = null;
+  function openQuestEditor(id) {
+    editingQuestId = id;
+    var quest = id ? findQuest(id) : null;
+    $('questModalTitle').textContent = quest ? '編輯關卡' : '新增關卡';
+    $('qName').value = quest ? quest.name : '';
+    $('qCat').value = quest ? (quest.category || '') : '';
+    $('questErr').textContent = '';
+    $('questDeleteBtn').style.display = quest ? '' : 'none';
+    openModal('questModal');
+  }
+  $('addQuestBtn').addEventListener('click', function () { openQuestEditor(null); });
+  $('questCancelBtn').addEventListener('click', function () { closeModal('questModal'); });
+  $('questSaveBtn').addEventListener('click', function () {
+    var name = $('qName').value.trim();
+    if (!name) { $('questErr').textContent = '請輸入關卡名稱。'; return; }
+    var cat = $('qCat').value.trim();
+    if (editingQuestId) {
+      var quest = findQuest(editingQuestId);
+      if (quest) { quest.name = name; quest.category = cat; quest.updated = Date.now(); }
+    } else {
+      data.quests.push({ id: uid(), name: name, category: cat, slots: [null, null, null, null], updated: Date.now() });
+    }
+    saveData(); renderAll(); closeModal('questModal');
+    toast('已儲存');
+  });
+  $('questDeleteBtn').addEventListener('click', function () {
+    if (!editingQuestId) return;
+    if (!window.confirm('要刪除此關卡嗎？')) return;
+    data.quests = data.quests.filter(function (quest) { return quest.id !== editingQuestId; });
+    saveData(); renderAll(); closeModal('questModal');
+    toast('已刪除');
+  });
+
+  /* ===== 關卡清單操作（點欄位・複製・編輯） ===== */
+  var pickerTarget = null; // { questId, slot }
+  function openPicker(questId, slot) {
+    pickerTarget = { questId: questId, slot: slot };
+    var html = '';
+    data.characters.forEach(function (ch) {
+      html += '<button type="button" class="char-tile" data-cid="' + ch.id + '">' + orbHTML(ch, 54) +
+        '<span class="ct-info"><span class="ct-name">' + esc(ch.name) + '</span><br>' +
+        '<span class="ct-sub">' + esc(charSub(ch) || '　') + '</span></span></button>';
+    });
+    $('pickerList').innerHTML = html;
+    $('pickerEmpty').style.display = data.characters.length === 0 ? 'block' : 'none';
+    openModal('pickerModal');
+  }
+  $('pickerList').addEventListener('click', function (e) {
+    var tile = e.target.closest('.char-tile');
+    if (!tile || !pickerTarget) return;
+    var quest = findQuest(pickerTarget.questId);
+    if (quest) {
+      quest.slots[pickerTarget.slot] = tile.getAttribute('data-cid');
+      quest.updated = Date.now();
+      saveData(); renderAll();
+    }
+    closeModal('pickerModal');
+  });
+  $('pickerClearBtn').addEventListener('click', function () {
+    if (pickerTarget) {
+      var quest = findQuest(pickerTarget.questId);
+      if (quest) {
+        quest.slots[pickerTarget.slot] = null;
+        quest.updated = Date.now();
+        saveData(); renderAll();
+      }
+    }
+    closeModal('pickerModal');
+  });
+  $('pickerCancelBtn').addEventListener('click', function () { closeModal('pickerModal'); });
+
+  function copyText(text, doneMsg) {
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast(doneMsg); }
+      catch (e) { toast('無法複製'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(doneMsg); }, fallback);
+    } else { fallback(); }
+  }
+
+  $('questList').addEventListener('click', function (e) {
+    var card = e.target.closest('.quest-card');
+    if (!card) return;
+    var quest = findQuest(card.getAttribute('data-qid'));
+    if (!quest) return;
+    var actBtn = e.target.closest('[data-act]');
+    if (actBtn) {
+      var act = actBtn.getAttribute('data-act');
+      if (act === 'edit') { openQuestEditor(quest.id); return; }
+      if (act === 'copy') {
+        var lines = [quest.name + (quest.category ? '（' + quest.category + '）' : '')];
+        for (var i = 0; i < 4; i++) {
+          var ch = quest.slots[i] ? findChar(quest.slots[i]) : null;
+          lines.push(SLOT_LABELS[i] + '：' + (ch ? ch.name : '未設定'));
+        }
+        copyText(lines.join('\n'), '已複製編隊');
+        return;
+      }
+    }
+    var slotBtn = e.target.closest('.slot');
+    if (slotBtn) openPicker(quest.id, parseInt(slotBtn.getAttribute('data-slot'), 10));
+  });
+
+  $('searchInput').addEventListener('input', renderQuests);
+  $('catFilter').addEventListener('change', renderQuests);
+
+  /* ===== 匯出 / 匯入 ===== */
+  $('exportBtn').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'party-tw-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast('已匯出');
+  });
+  $('importInput').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    this.value = '';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var d = JSON.parse(String(reader.result));
+        if (!d || !Array.isArray(d.characters) || !Array.isArray(d.quests)) throw new Error('bad format');
+        d.characters = d.characters.filter(function (c) { return c && c.id && c.name; }).map(function (c) {
+          return {
+            id: String(c.id), name: String(c.name),
+            attr: ATTR_COLORS[c.attr] ? c.attr : '火',
+            type: TYPE_COLORS[c.type] ? c.type : '反射',
+            race: String(c.race || ''), memo: String(c.memo || ''),
+            icon: typeof c.icon === 'string' && c.icon.indexOf('data:image/') === 0 ? c.icon : null
+          };
+        });
+        d.quests = d.quests.filter(function (quest) { return quest && quest.id && quest.name; }).map(function (quest) {
+          var slots = [null, null, null, null];
+          if (Array.isArray(quest.slots)) {
+            for (var i = 0; i < 4; i++) slots[i] = typeof quest.slots[i] === 'string' ? quest.slots[i] : null;
+          }
+          return {
+            id: String(quest.id), name: String(quest.name),
+            category: String(quest.category || ''), slots: slots,
+            updated: typeof quest.updated === 'number' ? quest.updated : Date.now()
+          };
+        });
+        if (!window.confirm('要覆寫目前資料並載入嗎？')) return;
+        data = d;
+        saveData(); renderAll();
+        toast('已載入');
+      } catch (err) {
+        toast('無法載入（JSON 格式不正確）');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ===== 捲動按鈕 ===== */
+  $('scrollUpBtn').addEventListener('click', function () {
+    window.scrollBy({ top: -window.innerHeight * 0.85, behavior: 'smooth' });
+  });
+  $('scrollDownBtn').addEventListener('click', function () {
+    window.scrollBy({ top: window.innerHeight * 0.85, behavior: 'smooth' });
+  });
+
+  /* ===== 初始繪製 ===== */
+  renderAll();
+
+  /* ===== 通行碼閘門 ===== */
+  (function () {
+    var PASS_HASH = 225215147; // 本工具專用通行碼的雜湊
+    var KEY = 'party_unlocked_tw_v1';
+    function fnv(s) {
+      var h = 2166136261;
+      for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+      return h;
+    }
+    var gate = $('gate');
+    function unlocked() {
+      try { return localStorage.getItem(KEY) === String(PASS_HASH); } catch (e) { return false; }
+    }
+    if (!unlocked()) gate.style.display = 'block';
+    function tryUnlock() {
+      var v = $('gateInput').value.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/\s/g, '').toLowerCase();
+      if (fnv(v) === PASS_HASH) {
+        try { localStorage.setItem(KEY, String(PASS_HASH)); } catch (e) {}
+        gate.style.display = 'none';
+      } else {
+        $('gateErr').textContent = '通行碼不正確，請確認購買時的說明。';
+      }
+    }
+    $('gateBtn').addEventListener('click', tryUnlock);
+    $('gateInput').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tryUnlock(); });
+  })();
+})();
+</script>
+</body>
+</html>
