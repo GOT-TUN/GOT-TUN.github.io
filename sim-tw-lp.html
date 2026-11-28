@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a2233">
+<title>反射軌道模擬器｜從截圖預讀反射軌道</title>
+<style>
+* { box-sizing: border-box;}
+html, body { margin: 0; padding: 0;}
+body {
+font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+background: #101623; color: #eef2f8; -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 680px; margin: 0 auto; padding: 28px 16px 40px;}
+h1 { font-size: 26px; margin: 0 0 6px; line-height: 1.35;}
+.sub { color: #aeb9cc; font-size: 15px; line-height: 1.7; margin: 0 0 20px;}
+.price-box {
+background: #1a2233; border: 1px solid #2b3852; border-radius: 14px;
+padding: 18px; text-align: center; margin: 0 0 22px;
+}
+.price { font-size: 34px; font-weight: 800; color: #ffd83d;}
+.price small { font-size: 14px; color: #aeb9cc; font-weight: 400;}
+a.buy-btn {
+display: block; margin-top: 14px; padding: 15px; border-radius: 11px;
+background: #b97e0a; color: #fff; font-size: 17px; font-weight: 700;
+text-decoration: none;
+}
+a.buy-btn:active { background: #d99a17;}
+.card {
+background: #1a2233; border: 1px solid #2b3852; border-radius: 12px;
+padding: 16px 18px; margin-top: 14px;
+}
+.card h2 { font-size: 16px; margin: 0 0 10px; color: #ffd83d;}
+.card ul { margin: 0; padding-left: 20px; line-height: 1.9; font-size: 14px;}
+.card p,.card li { font-size: 14px; line-height: 1.8; color: #dbe4f2;}
+.steps { counter-reset: st; list-style: none; padding: 0; margin: 0;}
+.steps li { padding: 4px 0 4px 6px;}
+.small { font-size: 12px; color: #93a3bd; line-height: 1.7;}
+table.tokusho { width: 100%; border-collapse: collapse; font-size: 13px;}
+table.tokusho th, table.tokusho td {
+border: 1px solid #2b3852; padding: 8px 10px; text-align: left; vertical-align: top;
+}
+table.tokusho th { width: 34%; color: #cfd8ea; font-weight: 600; background: #141b2c;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>反射軌道模擬器</h1>
+<p class="sub">載入戰鬥畫面的截圖，即可預先模擬拉放角度以及牆壁・方塊反射軌道的 Web 工具。不需安裝 App，用手機瀏覽器即可使用。</p>
+
+<div class="price-box">
+<div class="price">NT$70 <small>（含稅・買斷制）</small></div>
+<a class="buy-btn" id="buyBtn" href="https://buy.stripe.com/14AcN579h9no0o2bSB7N604">購買（取得通行碼）</a>
+<p class="small" style="margin:10px 0 0;">可使用信用卡 / Apple Pay 等付款。付款完成後，立即顯示通行碼。</p>
+</div>
+
+<div class="card">
+<h2>功能特色</h2>
+<ul>
+<li>載入截圖，直接在該畫面上模擬軌道</li>
+<li>以怪物彈珠式的拉放操作調整角度（支援相對拖曳），反射點附編號</li>
+<li>可調整反射場地（遊玩區域）並一鍵固定全部邊界</li>
+<li>方塊（障礙物）的新增・移動・變更大小・固定，以及反射／停止切換</li>
+<li>新增敵人方塊（外觀為圓形，判定為方形）</li>
+<li>貫通模式（也可確認穿過方塊・敵人的軌道）</li>
+<li>反射最多顯示 40 次</li>
+<li>考量球體大小的碰撞判定（比球體 2/3 還窄的縫隙無法通過，卡在縫隙時軌道即結束）</li>
+<li>我方角色標記的大小・透明度・固定</li>
+<li>設定自動儲存在裝置中（下次開啟時還原）</li>
+<li>將模擬結果儲存為 PNG 圖片</li>
+<li>加入主畫面後，可像 App 一樣啟動</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>使用方式</h2>
+<ol class="steps">
+<li>① 載入戰鬥畫面的截圖，將反射場地對準遊玩區域</li>
+<li>② 依需要配置方塊・敵人，拖曳我方角色決定位置</li>
+<li>③ 在場地內拉動進行瞄準，確認反射軌道</li>
+</ol>
+</div>
+
+<div class="card">
+<h2>購買流程</h2>
+<ol class="steps">
+<li>① 從上方「購買」按鈕前往結帳頁面</li>
+<li>② 付款完成後，顯示通行碼</li>
+<li>③ 開啟工具並輸入通行碼即可使用（輸入會記住在此裝置上）</li>
+</ol>
+<p class="small">通行碼僅供購買者本人使用，請勿與他人分享或轉售。</p>
+</div>
+
+<div class="card">
+<h2>常見問題</h2>
+<ul>
+<li>設定保存在哪裡？ → 保存在您裝置的瀏覽器內，不會傳送到伺服器。</li>
+<li>載入的截圖會被上傳嗎？ → 不會。全部在此裝置內處理。</li>
+<li>有包含遊戲圖片嗎？ → 沒有。截圖需由您自行準備。</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>使用環境</h2>
+<p>可在 iPhone（Safari）/ Android（Chrome）等現代瀏覽器運行。載入的圖片不會傳送到外部（全部在此裝置內處理）。</p>
+</div>
+
+<div class="card">
+<h2>特定商取引法に基づく表記</h2>
+<table class="tokusho">
+<tr><th>販売者</th><td>五島章弘</td></tr>
+<tr><th>住所</th><td>請求があった場合、遅滞なく開示いたします</td></tr>
+<tr><th>電話番号</th><td>請求があった場合、遅滞なく開示いたします</td></tr>
+<tr><th>メールアドレス</th><td>tmh252919@gmail.com</td></tr>
+<tr><th>販売価格</th><td>NT$70（税込）</td></tr>
+<tr><th>支払方法</th><td>クレジットカード等（Stripe決済）</td></tr>
+<tr><th>商品の引渡時期</th><td>決済完了直後、完了ページでパスコードを表示</td></tr>
+<tr><th>返品・キャンセル</th><td>デジタルコンテンツの性質上、パスコード表示後の返品・返金はお受けできません。不具合がある場合はメールでご連絡ください。</td></tr>
+</table>
+</div>
+
+<p class="small" style="margin-top:18px;">本工具為非官方粉絲自製工具，與目標遊戲的營運公司無關。遊戲截圖由使用者自行準備，本工具本身不包含任何遊戲素材。</p>
+</div>
+</body>
+</html>
